@@ -1,0 +1,166 @@
+{
+  "palettes": [
+    {
+      "id": "acid_current",
+      "name": "Acid",
+      "colors": {
+        "low": "#163b00",
+        "mid": "#7cff00",
+        "high": "#00f5d4",
+        "accent": "#d8ff3d",
+        "dark": "#000000",
+        "strobe": "#f2ffe8",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #163b00 38%, #7cff00 62%, #00f5d4 84%, #d8ff3d 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 38,
+        "mid": 62,
+        "high": 84,
+        "accent": 100
+      }
+    },
+    {
+      "id": "sodium_laser",
+      "name": "Sodium Laser",
+      "colors": {
+        "low": "#4a0900",
+        "mid": "#ff3b00",
+        "high": "#ffb000",
+        "accent": "#ffe08a",
+        "dark": "#000000",
+        "strobe": "#fff1c2",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #4a0900 38%, #ff3b00 62%, #ffb000 84%, #ffe08a 100%)"
+    },
+    {
+      "id": "subzero",
+      "name": "Subzero",
+      "colors": {
+        "low": "#00195c",
+        "mid": "#006dff",
+        "high": "#62f2ff",
+        "accent": "#d8fbff",
+        "dark": "#000000",
+        "strobe": "#f0feff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #00195c 38%, #006dff 62%, #62f2ff 84%, #d8fbff 100%)"
+    },
+    {
+      "id": "magenta_oil",
+      "name": "Magenta Oil",
+      "colors": {
+        "low": "#2a005c",
+        "mid": "#9b00ff",
+        "high": "#ff3bbd",
+        "accent": "#ffd1ef",
+        "dark": "#000000",
+        "strobe": "#fff0fa",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #2a005c 38%, #9b00ff 62%, #ff3bbd 84%, #ffd1ef 100%)"
+    },
+    {
+      "id": "steel_pulse",
+      "name": "Steel Pulse",
+      "colors": {
+        "low": "#202833",
+        "mid": "#586575",
+        "high": "#b8cedb",
+        "accent": "#e8f9ff",
+        "dark": "#000000",
+        "strobe": "#f6fdff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #202833 38%, #586575 62%, #b8cedb 84%, #e8f9ff 100%)"
+    },
+    {
+      "id": "thermal_rave",
+      "name": "Thermal Rave",
+      "colors": {
+        "low": "#4d0000",
+        "mid": "#ff2400",
+        "high": "#ffc400",
+        "accent": "#fff0a6",
+        "dark": "#000000",
+        "strobe": "#fff7d8",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #4d0000 38%, #ff2400 62%, #ffc400 84%, #fff0a6 100%)"
+    },
+    {
+      "id": "jungle_pressure",
+      "name": "Jungle Pressure",
+      "colors": {
+        "low": "#00301c",
+        "mid": "#00a85a",
+        "high": "#9dff57",
+        "accent": "#ffd35a",
+        "dark": "#000000",
+        "strobe": "#f0ffe5",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #00301c 24%, #006b3b 50%, #00a85a 76%, #9dff57 100%)"
+    },
+    {
+      "id": "warm_room",
+      "name": "Warm Room",
+      "colors": {
+        "low": "#401000",
+        "mid": "#c94a12",
+        "high": "#ffd166",
+        "accent": "#fff0c9",
+        "dark": "#000000",
+        "strobe": "#fff6df",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #401000 38%, #c94a12 62%, #ffd166 84%, #fff0c9 100%)"
+    },
+    {
+      "id": "dub_depth",
+      "name": "Dub Depth",
+      "colors": {
+        "low": "#00261b",
+        "mid": "#1f6b4b",
+        "high": "#7bc99a",
+        "accent": "#d6b35f",
+        "dark": "#000000",
+        "strobe": "#e7f7dc",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #00261b 26%, #0f4734 52%, #1f6b4b 78%, #7bc99a 100%)"
+    },
+    {
+      "id": "grime_voltage",
+      "name": "Grime Voltage",
+      "colors": {
+        "low": "#230047",
+        "mid": "#7d00ff",
+        "high": "#00e5ff",
+        "accent": "#eaff00",
+        "dark": "#000000",
+        "strobe": "#ffffff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #230047 22%, #7d00ff 52%, #00e5ff 80%, #eaff00 100%)"
+    },
+    {
+      "id": "warehouse_red",
+      "name": "Warehouse Red",
+      "colors": {
+        "low": "#330008",
+        "mid": "#b30020",
+        "high": "#ff174d",
+        "accent": "#ffb3c4",
+        "dark": "#000000",
+        "strobe": "#fff2f5",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #330008 24%, #730015 52%, #b30020 78%, #ff174d 100%)"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+"""Controlled scene generation package."""
