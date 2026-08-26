@@ -1,0 +1,1409 @@
+{
+  "effects": {
+    "singleColor": {
+      "scene_types": [
+        "ambient",
+        "dark"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": false,
+      "audio_reactivity": 0.05,
+      "energy": [
+        0.05,
+        0.35
+      ],
+      "movement": 0.12,
+      "rarity": 0.8,
+      "preferred_presets": {
+        "ambient": [
+          "steel-pulse",
+          "turquoise-roll",
+          "blue"
+        ],
+        "dark": [
+          "black",
+          "red-waves",
+          "magenta"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.12,
+            0.6
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        },
+        "blur": {
+          "range": [
+            0.0,
+            4.0
+          ],
+          "energy": "direct",
+          "spread": 0.25
+        },
+        "modulate": {
+          "probability": 0.45
+        },
+        "modulation_speed": {
+          "range": [
+            0.08,
+            0.55
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        },
+        "speed": {
+          "range": [
+            0.2,
+            1.2
+          ],
+          "energy": "direct",
+          "spread": 0.2
+        }
+      },
+      "palette_keys": {
+        "color": "mid",
+        "background_color": "background"
+      }
+    },
+    "gradient": {
+      "scene_types": [
+        "ambient",
+        "dark",
+        "build"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": false,
+      "audio_reactivity": 0.05,
+      "energy": [
+        0.08,
+        0.55
+      ],
+      "movement": 0.35,
+      "rarity": 0.85,
+      "preferred_presets": {
+        "ambient": [
+          "breathing",
+          "waves",
+          "falling-blues"
+        ],
+        "dark": [
+          "breathing",
+          "twister"
+        ],
+        "build": [
+          "Rainbow-roll",
+          "spectrum",
+          "rolling-sunset"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.18,
+            0.75
+          ],
+          "energy": "direct",
+          "spread": 0.15
+        },
+        "blur": {
+          "range": [
+            0.0,
+            5.5
+          ],
+          "energy": "direct",
+          "spread": 0.2
+        },
+        "gradient_roll": {
+          "range": [
+            0.0,
+            8.0
+          ],
+          "energy": "direct",
+          "spread": 0.35
+        },
+        "speed": {
+          "range": [
+            0.12,
+            2.4
+          ],
+          "energy": "direct",
+          "spread": 0.2
+        },
+        "modulate": {
+          "probability": 0.35
+        },
+        "modulation_speed": {
+          "range": [
+            0.05,
+            0.55
+          ],
+          "energy": "direct",
+          "spread": 0.2
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "background"
+      }
+    },
+    "melt": {
+      "scene_types": [
+        "ambient",
+        "dark",
+        "intro",
+        "breakdown",
+        "build"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.45,
+      "energy": [
+        0.15,
+        0.65
+      ],
+      "movement": 0.45,
+      "rarity": 0.72,
+      "preferred_presets": {
+        "ambient": [
+          "bladesmooth",
+          "purple-red"
+        ],
+        "dark": [
+          "purple-red"
+        ],
+        "build": [
+          "bladesmooth"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.25,
+            0.85
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "blur": {
+          "range": [
+            0.0,
+            5.0
+          ],
+          "energy": "inverse",
+          "spread": 0.18
+        },
+        "speed": {
+          "range": [
+            0.08,
+            0.65
+          ],
+          "energy": "direct",
+          "spread": 0.18
+        },
+        "reactivity": {
+          "range": [
+            0.12,
+            0.72
+          ],
+          "energy": "direct",
+          "spread": 0.15
+        },
+        "gradient_roll": {
+          "range": [
+            0.0,
+            5.0
+          ],
+          "energy": "direct",
+          "spread": 0.25
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "dark"
+      }
+    },
+    "scroll": {
+      "scene_types": [
+        "groove",
+        "warmup",
+        "energy",
+        "bass",
+        "roll",
+        "build",
+        "tension",
+        "transition",
+        "drop"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.9,
+      "energy": [
+        0.25,
+        0.85
+      ],
+      "movement": 0.8,
+      "rarity": 1.0,
+      "preferred_presets": {
+        "groove": [
+          "gentle-rgb",
+          "dynamic-rgb",
+          "rays"
+        ],
+        "energy": [
+          "dynamic-rgb",
+          "fast-hits",
+          "warmth"
+        ],
+        "build": [
+          "fast-hits",
+          "rays",
+          "icicles"
+        ],
+        "drop": [
+          "fast-hits",
+          "dynamic-rgb"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.5,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.08
+        },
+        "blur": {
+          "range": [
+            0.0,
+            8.0
+          ],
+          "energy": "inverse",
+          "spread": 0.22
+        },
+        "speed": {
+          "range": [
+            0.7,
+            5.0
+          ],
+          "energy": "direct",
+          "spread": 0.18
+        },
+        "decay": {
+          "range": [
+            0.55,
+            0.98
+          ],
+          "energy": "inverse",
+          "spread": 0.1
+        },
+        "threshold": {
+          "range": [
+            0.0,
+            0.45
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "mirror": {
+          "probability": 0.55
+        },
+        "flip": {
+          "probability": 0.3
+        }
+      },
+      "palette_keys": {
+        "color_lows": "low",
+        "color_mids": "mid",
+        "color_high": "high",
+        "background_color": "background"
+      }
+    },
+    "energy": {
+      "scene_types": [
+        "groove",
+        "warmup",
+        "energy",
+        "bass",
+        "roll",
+        "build",
+        "tension",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.9,
+      "energy": [
+        0.35,
+        0.95
+      ],
+      "movement": 0.75,
+      "rarity": 1.0,
+      "preferred_presets": {
+        "groove": [
+          "smooth-rainbow",
+          "snappy-blues"
+        ],
+        "energy": [
+          "smooth-plasma",
+          "smooth-rainbow",
+          "snappy-blues"
+        ],
+        "build": [
+          "smooth-plasma",
+          "clear-sky"
+        ],
+        "drop": [
+          "snappy-blues",
+          "smooth-plasma"
+        ],
+        "peak": [
+          "snappy-blues",
+          "smooth-rainbow"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.55,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.08
+        },
+        "blur": {
+          "range": [
+            0.0,
+            8.5
+          ],
+          "energy": "inverse",
+          "spread": 0.2
+        },
+        "sensitivity": {
+          "range": [
+            0.35,
+            0.95
+          ],
+          "energy": "direct",
+          "spread": 0.14
+        },
+        "color_cycler": {
+          "probability": 0.25
+        },
+        "mirror": {
+          "probability": 0.6
+        },
+        "flip": {
+          "probability": 0.28
+        },
+        "mixing_mode": {
+          "choices": [
+            "overlap",
+            "add",
+            "screen"
+          ],
+          "chance": 0.65
+        }
+      },
+      "palette_keys": {
+        "color_lows": "low",
+        "color_mids": "mid",
+        "color_high": "high",
+        "gradient": "gradient",
+        "background_color": "background"
+      }
+    },
+    "rain": {
+      "scene_types": [
+        "ambient",
+        "intro",
+        "breakdown",
+        "groove",
+        "warmup",
+        "energy",
+        "build"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.75,
+      "energy": [
+        0.2,
+        0.75
+      ],
+      "movement": 0.65,
+      "rarity": 0.82,
+      "preferred_presets": {
+        "ambient": [
+          "cold-drops",
+          "ripples"
+        ],
+        "groove": [
+          "ripples",
+          "smooth-rwb"
+        ],
+        "energy": [
+          "meteor-shower",
+          "prismatic"
+        ],
+        "build": [
+          "meteor-shower",
+          "prismatic"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.35,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.1
+        },
+        "blur": {
+          "range": [
+            0.0,
+            4.0
+          ],
+          "energy": "inverse",
+          "spread": 0.2
+        },
+        "lows_sensitivity": {
+          "range": [
+            0.04,
+            0.35
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "mids_sensitivity": {
+          "range": [
+            0.03,
+            0.28
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "high_sensitivity": {
+          "range": [
+            0.04,
+            0.32
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "mirror": {
+          "probability": 0.55
+        },
+        "flip": {
+          "probability": 0.2
+        }
+      },
+      "palette_keys": {
+        "lows_color": "low",
+        "mids_color": "mid",
+        "high_color": "high",
+        "background_color": "background"
+      }
+    },
+    "bar": {
+      "scene_types": [
+        "groove",
+        "warmup",
+        "bass",
+        "roll",
+        "build",
+        "tension",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "reactivity_mode": "beat",
+      "audio_reactivity": 0.7,
+      "energy": [
+        0.35,
+        0.9
+      ],
+      "movement": 0.72,
+      "rarity": 0.9,
+      "preferred_presets": {
+        "groove": [
+          "smooth-bounce",
+          "passing-by"
+        ],
+        "build": [
+          "plasma-cascade",
+          "bouncing-blues"
+        ],
+        "drop": [
+          "Rainbow-lr",
+          "bouncing-blues"
+        ],
+        "peak": [
+          "Rainbow-lr",
+          "plasma-cascade"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.45,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.08
+        },
+        "blur": {
+          "range": [
+            0.0,
+            3.5
+          ],
+          "energy": "inverse",
+          "spread": 0.2
+        },
+        "gradient_roll": {
+          "range": [
+            0.0,
+            7.0
+          ],
+          "energy": "direct",
+          "spread": 0.28
+        },
+        "color_step": {
+          "range": [
+            0.04,
+            0.2
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "beat_skip": {
+          "range": [
+            0,
+            2
+          ],
+          "energy": "inverse",
+          "spread": 0.0
+        },
+        "mirror": {
+          "probability": 0.5
+        },
+        "flip": {
+          "probability": 0.28
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "background"
+      }
+    },
+    "multiBar": {
+      "scene_types": [
+        "groove",
+        "warmup",
+        "energy",
+        "bass",
+        "roll",
+        "build",
+        "tension",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "reactivity_mode": "beat",
+      "audio_reactivity": 0.7,
+      "energy": [
+        0.35,
+        0.95
+      ],
+      "movement": 0.8,
+      "rarity": 0.92,
+      "preferred_presets": {
+        "groove": [
+          "falling-blues",
+          "red-blue-expanse"
+        ],
+        "energy": [
+          "bright-cascade",
+          "Rainbow-oscillation"
+        ],
+        "build": [
+          "bright-cascade",
+          "Rainbow-oscillation"
+        ],
+        "drop": [
+          "Rainbow-oscillation",
+          "bright-cascade"
+        ],
+        "peak": [
+          "Rainbow-oscillation"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.5,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.08
+        },
+        "blur": {
+          "range": [
+            0.0,
+            3.0
+          ],
+          "energy": "inverse",
+          "spread": 0.2
+        },
+        "gradient_roll": {
+          "range": [
+            0.0,
+            7.0
+          ],
+          "energy": "direct",
+          "spread": 0.28
+        },
+        "color_step": {
+          "range": [
+            0.04,
+            0.22
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "mirror": {
+          "probability": 0.55
+        },
+        "flip": {
+          "probability": 0.25
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "background"
+      }
+    },
+    "blade_power_plus": {
+      "scene_types": [
+        "groove",
+        "energy",
+        "bass",
+        "roll",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.95,
+      "energy": [
+        0.45,
+        1.0
+      ],
+      "movement": 0.7,
+      "rarity": 0.85,
+      "preferred_presets": {
+        "groove": [
+          "ocean-bass",
+          "orange-hi-hat"
+        ],
+        "energy": [
+          "ocean-bass",
+          "purplered-bass"
+        ],
+        "drop": [
+          "purplered-bass",
+          "orange-hi-hat"
+        ],
+        "peak": [
+          "orange-hi-hat",
+          "purplered-bass"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.55,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.08
+        },
+        "background_brightness": {
+          "range": [
+            0.05,
+            0.55
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "blur": {
+          "range": [
+            0.0,
+            4.0
+          ],
+          "energy": "inverse",
+          "spread": 0.18
+        },
+        "decay": {
+          "range": [
+            0.35,
+            0.88
+          ],
+          "energy": "inverse",
+          "spread": 0.11
+        },
+        "multiplier": {
+          "range": [
+            0.35,
+            1.6
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        },
+        "frequency_range": {
+          "choices": [
+            "Lows (beat+bass)",
+            "Mids",
+            "High"
+          ],
+          "chance": 0.9
+        },
+        "mirror": {
+          "probability": 0.45
+        },
+        "flip": {
+          "probability": 0.22
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "low",
+        "color": "accent"
+      }
+    },
+    "equalizer2d": {
+      "scene_types": [
+        "groove",
+        "warmup",
+        "energy",
+        "bass",
+        "roll",
+        "build",
+        "tension",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.85,
+      "energy": [
+        0.35,
+        0.9
+      ],
+      "movement": 0.65,
+      "rarity": 0.72,
+      "preferred_presets": {
+        "groove": [
+          "cold",
+          "neon",
+          "earth"
+        ],
+        "energy": [
+          "flare",
+          "neon",
+          "mountain"
+        ],
+        "build": [
+          "flare",
+          "inflamed"
+        ],
+        "peak": [
+          "flare",
+          "neon"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.45,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.1
+        },
+        "blur": {
+          "range": [
+            0.0,
+            3.0
+          ],
+          "energy": "inverse",
+          "spread": 0.16
+        },
+        "bands": {
+          "range": [
+            12,
+            64
+          ],
+          "energy": "direct",
+          "spread": 0.18
+        },
+        "peak_decay": {
+          "range": [
+            0.01,
+            0.08
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "peak_marks": {
+          "probability": 0.55
+        },
+        "spin": {
+          "probability": 0.35
+        },
+        "spin_multiplier": {
+          "range": [
+            0.4,
+            3.5
+          ],
+          "energy": "direct",
+          "spread": 0.2
+        },
+        "mirror": {
+          "probability": 0.5
+        },
+        "flip": {
+          "probability": 0.22
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "peak_color": "accent",
+        "background_color": "background"
+      }
+    },
+    "concentric": {
+      "scene_types": [
+        "build",
+        "tension",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "audio_reactivity": 0.9,
+      "energy": [
+        0.55,
+        1.0
+      ],
+      "movement": 0.8,
+      "rarity": 0.68,
+      "preferred_presets": {
+        "build": [
+          "ocean-implosion",
+          "rainbow-explosion"
+        ],
+        "drop": [
+          "fire-explosion",
+          "rainbow-explosion"
+        ],
+        "peak": [
+          "fire-explosion",
+          "rainbow-explosion"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.5,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.08
+        },
+        "blur": {
+          "range": [
+            0.0,
+            3.5
+          ],
+          "energy": "inverse",
+          "spread": 0.16
+        },
+        "power_multiplier": {
+          "range": [
+            0.35,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "gradient_scale": {
+          "range": [
+            0.8,
+            2.2
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        },
+        "center_smoothing": {
+          "range": [
+            0.2,
+            1.0
+          ],
+          "energy": "inverse",
+          "spread": 0.15
+        },
+        "idle_speed": {
+          "range": [
+            0.25,
+            1.4
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        },
+        "invert": {
+          "probability": 0.35
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "background"
+      }
+    },
+    "strobe": {
+      "scene_types": [
+        "strobe",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "reactivity_mode": "beat",
+      "audio_reactivity": 0.72,
+      "energy": [
+        0.75,
+        1.0
+      ],
+      "movement": 0.9,
+      "rarity": 0.58,
+      "preferred_presets": {
+        "strobe": [
+          "fast-strobe",
+          "faster-strobe",
+          "painful"
+        ],
+        "drop": [
+          "blues-on-the-beat",
+          "aggro-red"
+        ],
+        "peak": [
+          "fast-strobe",
+          "painful"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.7,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.05
+        },
+        "blur": {
+          "range": [
+            0.0,
+            1.5
+          ],
+          "energy": "inverse",
+          "spread": 0.2
+        },
+        "gradient_roll": {
+          "range": [
+            0.0,
+            4.0
+          ],
+          "energy": "direct",
+          "spread": 0.25
+        },
+        "strobe_decay": {
+          "range": [
+            0.6,
+            2.0
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "beat_decay": {
+          "range": [
+            0.7,
+            2.4
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "mirror": {
+          "probability": 0.35
+        },
+        "flip": {
+          "probability": 0.2
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "background_color": "background"
+      }
+    },
+    "real_strobe": {
+      "scene_types": [
+        "strobe",
+        "transition",
+        "drop",
+        "peak",
+        "finale"
+      ],
+      "styles": [
+        "techno",
+        "drum_and_bass",
+        "house",
+        "dub",
+        "grime"
+      ],
+      "audio_reactive": true,
+      "reactivity_mode": "audio",
+      "audio_reactivity": 0.9,
+      "energy": [
+        0.72,
+        1.0
+      ],
+      "movement": 0.95,
+      "rarity": 0.62,
+      "preferred_presets": {
+        "strobe": [
+          "dancefloor",
+          "strobe_only",
+          "glitter"
+        ],
+        "drop": [
+          "bass_only",
+          "dancefloor",
+          "color-shift"
+        ],
+        "peak": [
+          "extreme",
+          "dancefloor",
+          "glitter"
+        ]
+      },
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.7,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.05
+        },
+        "blur": {
+          "range": [
+            0.0,
+            1.0
+          ],
+          "energy": "inverse",
+          "spread": 0.2
+        },
+        "color_step": {
+          "range": [
+            0.015,
+            0.14
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "bass_strobe_decay_rate": {
+          "range": [
+            0.05,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.18
+        },
+        "strobe_width": {
+          "range": [
+            10,
+            70
+          ],
+          "energy": "direct",
+          "spread": 0.14
+        },
+        "strobe_decay_rate": {
+          "range": [
+            0.35,
+            1.0
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "mirror": {
+          "probability": 0.35
+        },
+        "flip": {
+          "probability": 0.18
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient",
+        "strobe_color": "strobe",
+        "background_color": "background"
+      }
+    },
+    "energy_bloom": {
+      "name": "Energy Bloom",
+      "ledfx_effect": "energy_bloom",
+      "based_on_ledfx_effect": "energy",
+      "description": "A fuller audio-driven wash inspired by LedFx energy, designed for active scenes without becoming pure strobe.",
+      "scene_types": [
+        "groove",
+        "warmup",
+        "energy",
+        "bass",
+        "roll",
+        "build",
+        "drop",
+        "peak"
+      ],
+      "audio_reactive": true,
+      "energy": [
+        0.42,
+        0.92
+      ],
+      "movement": 0.58,
+      "rarity": 0.53,
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.15,
+            0.7
+          ],
+          "energy": "direct",
+          "spread": 0.14
+        },
+        "speed": {
+          "range": [
+            0.05,
+            0.58
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "detail": {
+          "range": [
+            0.1,
+            0.52
+          ],
+          "variation": "direct",
+          "spread": 0.16
+        },
+        "decay": {
+          "range": [
+            0.05,
+            0.46
+          ],
+          "energy": "inverse",
+          "spread": 0.1
+        },
+        "flash": {
+          "range": [
+            0,
+            0.35
+          ],
+          "energy": "direct",
+          "spread": 0.1
+        },
+        "gradient_roll": {
+          "range": [
+            0,
+            2.03
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient"
+      },
+      "defaults": {
+        "frequency_range": "Beat"
+      }
+    },
+    "bass_body": {
+      "name": "Bass Body",
+      "ledfx_effect": "bass_body",
+      "based_on_ledfx_effect": "energy",
+      "description": "A fuller audio-driven wash inspired by LedFx energy, designed for active scenes without becoming pure strobe.",
+      "scene_types": [
+        "groove",
+        "warmup",
+        "energy",
+        "bass",
+        "roll",
+        "build",
+        "drop",
+        "peak"
+      ],
+      "audio_reactive": true,
+      "energy": [
+        0.58,
+        1
+      ],
+      "movement": 0.7,
+      "rarity": 0.55,
+      "safe_params": {
+        "brightness": {
+          "range": [
+            0.15,
+            0.86
+          ],
+          "energy": "direct",
+          "spread": 0.14
+        },
+        "speed": {
+          "range": [
+            0.05,
+            0.7
+          ],
+          "energy": "direct",
+          "spread": 0.12
+        },
+        "detail": {
+          "range": [
+            0.1,
+            0.58
+          ],
+          "variation": "direct",
+          "spread": 0.16
+        },
+        "decay": {
+          "range": [
+            0.05,
+            0.4
+          ],
+          "energy": "inverse",
+          "spread": 0.1
+        },
+        "flash": {
+          "range": [
+            0,
+            0.19
+          ],
+          "energy": "direct",
+          "spread": 0.1
+        },
+        "gradient_roll": {
+          "range": [
+            0,
+            2.45
+          ],
+          "energy": "direct",
+          "spread": 0.16
+        }
+      },
+      "palette_keys": {
+        "gradient": "gradient"
+      },
+      "defaults": {
+        "frequency_range": "Bass"
+      }
+    }
+  }
+}

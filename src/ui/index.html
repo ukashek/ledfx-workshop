@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LedFx Workshop</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css?v=20260826-selected-first" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="topbar-main">
+          <h1>LedFx Workshop</h1>
+          <p class="connection-line">
+            <span id="connectionStatus" class="connection-status is-checking">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="connectionStatusText">Checking</span>
+            </span>
+            <span id="connectionLine">Connecting...</span>
+          </p>
+          <div class="connection-editor">
+            <label>
+              LedFx API
+              <input id="ledfxUrlInput" type="text" value="http://127.0.0.1:8888" />
+            </label>
+            <button id="saveConnectionButton" type="button">Connect</button>
+          </div>
+        </div>
+        <section class="top-device-preview" aria-label="Device preview">
+          <div class="top-preview-head">
+            <label>
+              Device
+              <select id="topPreviewDeviceSelect"></select>
+            </label>
+            <span id="topPreviewStatus" class="top-preview-status">Waiting</span>
+          </div>
+          <div id="topPreviewVisual" class="top-preview-visual">
+            <canvas id="topPreviewCanvas" class="top-preview-canvas" width="1" height="1"></canvas>
+            <span class="top-preview-sweep" aria-hidden="true"></span>
+          </div>
+          <div class="top-preview-meta">
+            <strong id="topPreviewEffectName">No effect</strong>
+            <span id="topPreviewPixelCount">-</span>
+          </div>
+        </section>
+        <div class="top-actions">
+          <button id="appGuideButton" type="button">Guide</button>
+          <button id="exportShowPackButton" type="button">Export Show Pack</button>
+          <button id="importShowPackButton" type="button">Import Show Pack</button>
+          <input id="importShowPackInput" type="file" accept=".zip,.json,application/zip,application/json" hidden />
+          <button id="refreshButton" type="button">Refresh</button>
+          <button id="restoreButton" type="button">Restore Preview</button>
+        </div>
+      </header>
+
+      <nav class="app-tabs" aria-label="Application views">
+        <button id="factoryTabButton" class="active" type="button">Scene Factory</button>
+        <button id="presetLabTabButton" type="button">Preset Lab</button>
+        <button id="midiMapperTabButton" type="button">MIDI Patch</button>
+        <button id="liveModeTabButton" type="button">Live Mode</button>
+        <button id="effectForgeTabButton" type="button">
+          Effect Forge
+          <span>Experimental</span>
+        </button>
+      </nav>
+
+      <section id="factoryView" class="app-view">
+      <section class="workspace">
+        <form id="generatorForm" class="controls-panel">
+          <div class="generation-grid">
+            <section class="generator-card main-settings">
+              <div class="mini-head">
+                <h2>Generator</h2>
+                <div class="editor-actions">
+                  <button id="editStyleButton" type="button">Edit Style</button>
+                  <button id="newStyleButton" type="button">New Style</button>
+                  <button id="deleteStyleButton" type="button" class="danger">Delete</button>
+                </div>
+              </div>
+              <div class="control-grid">
+                <label class="option-field">
+                  <span class="field-title">
+                    Style
+                    <button id="styleInfoButton" class="info-button" type="button" data-tooltip="Style defaults and weighted choices are loaded from data/styles.yaml.">i</button>
+                  </span>
+                  <select id="styleSelect"></select>
+                  <span id="styleDescription" class="sr-only">Style defaults and weighted choices are loaded from data/styles.yaml.</span>
+                </label>
+                <label class="option-field">
+                  <span class="field-title">
+                    Scenes
+                    <button class="info-button" type="button" data-tooltip="Number of scenes to generate in this batch.">i</button>
+                  </span>
+                  <input id="countInput" type="number" min="1" max="250" value="24" />
+                </label>
+                <label class="option-field">
+                  <span class="field-title">
+                    Effect mode
+                    <button class="info-button" type="button" data-tooltip="Choose whether generated scenes use music-reactive effects, static/timed effects, or both. Music-reactive includes direct audio analysis and LedFx BPM/beat-driven effects.">i</button>
+                  </span>
+                  <select id="effectModeSelect">
+                    <option value="sound">Music-reactive only</option>
+                    <option value="non_sound">Non-reactive only</option>
+                    <option value="all">All configured effects</option>
+                  </select>
+                </label>
+                <label class="option-field">
+                  <span class="field-title">
+                    Preset mode
+                    <button class="info-button" type="button" data-tooltip="Controls what happens on Send to LedFx. Create new saves every generated effect config as a LedFx user preset before saving scenes.">i</button>
+                  </span>
+                  <select id="presetModeSelect">
+                    <option value="existing">Existing presets</option>
+                    <option value="mixed">Existing + new user presets</option>
+                    <option value="generate" selected>Create new user presets</option>
+                  </select>
+                </label>
+                <label class="option-field">
+                  <span class="field-title">
+                    Preset bank
+                    <button class="info-button" type="button" data-tooltip="Uses local Workshop presets as reusable starting points. They stay local until scenes or drafts are sent to LedFx.">i</button>
+                  </span>
+                  <select id="presetBankModeSelect">
+                    <option value="assist" selected>Use sometimes</option>
+                    <option value="prefer">Prefer bank</option>
+                    <option value="off">Ignore bank</option>
+                  </select>
+                </label>
+                <label class="option-field">
+                  <span class="field-title">
+                    Layout
+                    <button id="layoutInfoButton" class="info-button" type="button" data-tooltip="Choose how selected Devices share roles across a generated scene.">i</button>
+                  </span>
+                  <select id="layoutSelect">
+                    <option value="auto">Auto</option>
+                  </select>
+                  <span id="layoutDescription" class="sr-only">Choose how selected Devices share roles.</span>
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Energy
+                      <button class="info-button" type="button" data-tooltip="Sets target intensity: lower favors ambient, dark and groove scenes; higher favors build, drop, peak and strobe scenes.">i</button>
+                    </span>
+                    <span id="energyValue" class="range-value">65%</span>
+                  </span>
+                  <input id="energyInput" type="range" min="0" max="100" value="65" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Variation
+                      <button class="info-button" type="button" data-tooltip="Controls preset drift and duplicate avoidance: lower stays tighter, higher explores more combinations.">i</button>
+                    </span>
+                    <span id="variationValue" class="range-value">60%</span>
+                  </span>
+                  <input id="variationInput" type="range" min="0" max="100" value="60" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Brightness
+                      <button class="info-button" type="button" data-tooltip="Scales final LED brightness while keeping each effect inside its safe parameter range.">i</button>
+                    </span>
+                    <span id="brightnessValue" class="range-value">80%</span>
+                  </span>
+                  <input id="brightnessInput" type="range" min="0" max="100" value="80" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Movement
+                      <button class="info-button" type="button" data-tooltip="Adjusts animation speed, rolling gradients and motion-heavy parameters across selected effects.">i</button>
+                    </span>
+                    <span id="movementValue" class="range-value">55%</span>
+                  </span>
+                  <input id="movementInput" type="range" min="0" max="100" value="55" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Audio response
+                      <button class="info-button" type="button" data-tooltip="Sets how easily scenes react to quieter bands: lower is steadier, higher catches more detail.">i</button>
+                    </span>
+                    <span id="audioResponseValue" class="range-value">60%</span>
+                  </span>
+                  <input id="audioResponseInput" type="range" min="0" max="100" value="60" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Density
+                      <button class="info-button" type="button" data-tooltip="Controls visual fullness: lower leaves more negative space, higher adds trails, bands and body.">i</button>
+                    </span>
+                    <span id="densityValue" class="range-value">50%</span>
+                  </span>
+                  <input id="densityInput" type="range" min="0" max="100" value="50" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Flash
+                      <button class="info-button" type="button" data-tooltip="Controls how often drop, peak and strobe scenes are selected and how aggressive flashes feel.">i</button>
+                    </span>
+                    <span id="flashValue" class="range-value">45%</span>
+                  </span>
+                  <input id="flashInput" type="range" min="0" max="100" value="45" />
+                </label>
+              </div>
+            </section>
+
+            <section class="generator-card palette-tools">
+              <div class="mini-head">
+                <h2>Palettes</h2>
+                <div class="section-tools">
+                  <button id="selectAllPalettesButton" type="button">Select All</button>
+                  <button id="unselectAllPalettesButton" type="button">Unselect All</button>
+                  <button id="newPaletteButton" type="button">New Palette</button>
+                </div>
+              </div>
+              <div id="paletteSelectionSummary" class="palette-selection-summary">Auto</div>
+              <select id="paletteSelect" multiple hidden></select>
+              <div id="paletteList" class="palette-list"></div>
+            </section>
+
+            <section class="generator-card chooser-card scene-types-card">
+              <div class="mini-head">
+                <h2>Scene Types</h2>
+                <div class="section-tools">
+                  <button id="selectAllSceneTypesButton" type="button">Select All</button>
+                  <button id="unselectAllSceneTypesButton" type="button">Unselect All</button>
+                </div>
+              </div>
+              <div id="sceneTypeList" class="check-grid"></div>
+            </section>
+
+            <div class="setup-stack">
+              <section class="generator-card batch-settings">
+                <div class="mini-head">
+                  <h2>Batch Setup</h2>
+                </div>
+                <div class="start-param-grid">
+                  <label>
+                    <span class="field-title">
+                      Name prefix
+                      <button class="info-button" type="button" data-tooltip="Short prefix used in generated LedFx scene names.">i</button>
+                    </span>
+                    <input id="namePrefixInput" type="text" maxlength="8" value="LSF" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      Start index
+                      <button class="info-button" type="button" data-tooltip="First number used for this generated batch.">i</button>
+                    </span>
+                    <input id="startIndexInput" type="number" min="1" max="9999" value="1" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      Scene tags
+                      <button class="info-button" type="button" data-tooltip="Comma-separated tags saved to LedFx for filtering and playlist building.">i</button>
+                    </span>
+                    <input id="generationTagsInput" type="text" maxlength="160" value="scene-factory" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      Seed
+                      <button class="info-button" type="button" data-tooltip="Use the same seed and settings to reproduce a generated batch.">i</button>
+                    </span>
+                    <input id="seedInput" type="text" maxlength="80" placeholder="optional repeatable seed" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="generator-card devices-card">
+                <div class="mini-head">
+                  <h2>Devices</h2>
+                </div>
+                <p class="device-help">Checked devices are Active in generated scenes. Unchecked devices are saved as Ignore.</p>
+                <div id="virtualList" class="check-grid"></div>
+              </section>
+            </div>
+          </div>
+
+          <div class="submit-row">
+            <button id="generateButton" type="submit">Generate</button>
+          </div>
+        </form>
+
+        <section class="queue-panel">
+          <div class="queue-head">
+            <div>
+              <h2>Scene Queue</h2>
+              <p id="queueSummary">No generated scenes yet.</p>
+            </div>
+            <div id="palettePreview" class="palette-preview"></div>
+          </div>
+          <div id="similarityReport" class="similarity-report" hidden></div>
+          <div id="sceneList" class="scene-list"></div>
+          <div class="queue-actions">
+            <div class="queue-approval-actions">
+              <button id="approveAllButton" type="button">Approve All</button>
+              <button id="unapproveAllButton" type="button">Unapprove All</button>
+              <button id="compareScenesButton" type="button" disabled>Compare A/B</button>
+              <button id="smartDiversifyButton" type="button">Smart Diversify</button>
+              <button id="newManualSceneButton" type="button">Manual Scene</button>
+            </div>
+            <button id="saveButton" type="button">Send to LedFX</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="library-panel">
+        <div class="library-head">
+          <div>
+            <h2>LedFx Library</h2>
+            <p id="librarySummary">Library not loaded yet.</p>
+          </div>
+          <div class="library-actions">
+            <button id="refreshLibraryButton" type="button">Refresh Library</button>
+            <button id="shortenLsfButton" type="button">Shorten LSF Names</button>
+          </div>
+        </div>
+
+        <div class="library-grid">
+          <section class="library-column">
+            <div class="mini-head">
+              <h2>Published Scenes</h2>
+            </div>
+            <div class="bulk-toolbar">
+            <div class="bulk-count" id="bulkSceneSummary">0 selected</div>
+              <label class="library-filter">
+                Search
+                <input id="libraryTagFilterInput" type="text" maxlength="160" placeholder="tag, palette, name or effect" />
+              </label>
+              <div class="bulk-actions">
+                <button id="selectAllLibraryScenesButton" type="button">Select All</button>
+                <button id="selectFilteredLibraryScenesButton" type="button">Select Filtered</button>
+                <button id="clearLibrarySelectionButton" type="button">Unselect All</button>
+                <input id="bulkTagInput" type="text" maxlength="160" placeholder="tag, warmup, peak" />
+                <button id="tagSelectedScenesButton" type="button">Apply Tag</button>
+                <button id="deleteSelectedScenesButton" type="button" class="danger">Delete Selected</button>
+              </div>
+            </div>
+            <div id="ledfxSceneList" class="library-list"></div>
+          </section>
+
+          <section class="library-column">
+            <div class="mini-head">
+              <h2>Playlists</h2>
+              <div class="section-tools">
+                <button id="playlistFromSelectionButton" type="button">From Selection</button>
+                <button id="newPlaylistButton" type="button">New Playlist</button>
+              </div>
+            </div>
+            <div id="playlistList" class="library-list"></div>
+          </section>
+        </div>
+      </section>
+      </section>
+
+      <section id="presetLabView" class="app-view preset-view" hidden>
+        <section class="preset-panel">
+          <div class="preset-head">
+            <div>
+              <h2>Preset Lab</h2>
+              <p>Create local preset drafts for installed LedFx effects, edit them, then send approved drafts to LedFx. Saved presets are global for the effect and can be used by any Device that supports that effect.</p>
+            </div>
+            <div class="preset-actions">
+              <button id="refreshPresetButton" type="button">Refresh Presets</button>
+              <button id="restorePresetPreviewButton" type="button">Restore Preview</button>
+              <button id="generatePresetButton" class="primary-action" type="button">Generate Drafts</button>
+              <button id="sendPresetDraftsButton" type="button" disabled>Send to LedFx</button>
+              <button id="clearPresetDraftsButton" type="button" disabled>Clear Drafts</button>
+            </div>
+          </div>
+
+          <div class="preset-grid">
+            <section class="preset-card">
+              <h3>Preset Generator</h3>
+              <div class="preset-form-grid">
+                <label>
+                  <span class="field-title">
+                    Effect
+                    <button class="info-button" type="button" data-tooltip="Only effects reported by the current LedFx /api/schema are listed.">i</button>
+                  </span>
+                  <select id="presetEffectSelect"></select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    Base preset
+                    <button class="info-button" type="button" data-tooltip="Starts from a LedFx or user preset, then safely varies parameters allowed by the effect profile and schema.">i</button>
+                  </span>
+                  <select id="presetBaseSelect"></select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    Preview Device
+                    <button class="info-button" type="button" data-tooltip="Temporary LedFx target used only to preview drafts or write user presets through the REST API. The saved preset remains global for the effect.">i</button>
+                  </span>
+                  <select id="presetDeviceSelect"></select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    Count
+                    <button class="info-button" type="button" data-tooltip="Number of user presets to create for the selected effect.">i</button>
+                  </span>
+                  <input id="presetCountInput" type="number" min="1" max="50" value="4" />
+                </label>
+                <label class="preset-palette-field">
+                  <span class="field-title">
+                    Palettes
+                    <button class="info-button" type="button" data-tooltip="Select one or more palettes. Each generated draft uses one selected palette; Auto lets Workshop choose from the style-biased palette pool.">i</button>
+                  </span>
+                  <select id="presetPaletteSelect" hidden></select>
+                  <span id="presetPalettePreview" class="select-gradient-preview"></span>
+                  <div id="presetPalettePicker" class="mini-palette-picker"></div>
+                </label>
+                <label>
+                  <span class="field-title">
+                    Name prefix
+                    <button class="info-button" type="button" data-tooltip="Short prefix used in generated LedFx user preset names.">i</button>
+                  </span>
+                  <input id="presetNamePrefixInput" type="text" maxlength="18" value="SLP" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Energy
+                      <button class="info-button" type="button" data-tooltip="Targets calmer or more intense parameter ranges for generated presets.">i</button>
+                    </span>
+                    <span id="presetEnergyValue" class="range-value">65%</span>
+                  </span>
+                  <input id="presetEnergyInput" type="range" min="0" max="100" value="65" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Variation
+                      <button class="info-button" type="button" data-tooltip="Controls how far each new preset drifts from the base preset while staying inside LedFx schema limits.">i</button>
+                    </span>
+                    <span id="presetVariationValue" class="range-value">60%</span>
+                  </span>
+                  <input id="presetVariationInput" type="range" min="0" max="100" value="60" />
+                </label>
+                <label>
+                  <span class="field-title">
+                    Seed
+                    <button class="info-button" type="button" data-tooltip="Optional repeatable seed for recreating the same preset set.">i</button>
+                  </span>
+                  <input id="presetSeedInput" type="text" maxlength="80" placeholder="optional repeatable seed" />
+                </label>
+              </div>
+            </section>
+
+            <section class="preset-card preset-drafts-card">
+              <div class="mini-head">
+                <h3>Generated Drafts</h3>
+                <span id="presetDraftSummary" class="preset-summary">No drafts yet.</span>
+              </div>
+              <div id="presetDraftList" class="preset-list"></div>
+            </section>
+
+            <section class="preset-card preset-bank-card">
+              <div class="mini-head">
+                <h3>Preset Bank</h3>
+                <span id="presetBankSummary" class="preset-summary">No banked presets.</span>
+              </div>
+              <p class="preset-bank-help">Local reusable preset bases for Scene Factory and scene editing. Bank items do not become LedFx user presets until you send a scene or preset draft.</p>
+              <div id="presetBankList" class="preset-list preset-bank-list"></div>
+            </section>
+
+            <section class="preset-card preset-library-card">
+              <div class="mini-head">
+                <h3>Preset Library</h3>
+                <span id="presetSummary" class="preset-summary">No presets loaded.</span>
+              </div>
+              <div id="presetList" class="preset-list"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section id="liveModeView" class="app-view live-view" hidden>
+        <section class="live-panel">
+          <div class="live-head">
+            <div>
+              <h2>Live Mode</h2>
+              <p>Fast playlist launch, active playlist scene transport, blackout and device preview for performance use.</p>
+            </div>
+            <div class="live-actions">
+              <button id="liveRefreshButton" type="button">Refresh</button>
+              <button id="liveBlackoutButton" type="button">Blackout</button>
+              <button id="liveStopButton" type="button">Stop</button>
+              <button id="livePrevButton" type="button">Previous</button>
+              <button id="liveNextButton" type="button">Next</button>
+            </div>
+          </div>
+          <div class="live-grid">
+            <section class="live-card live-now-card">
+              <h3>Now Playing</h3>
+              <div id="liveNowPlaying" class="live-now">No active playlist.</div>
+            </section>
+            <section class="live-card live-playlists-card">
+              <div class="mini-head">
+                <h3>Playlists</h3>
+                <span id="livePlaylistSummary" class="midi-mini-status">No playlists loaded.</span>
+              </div>
+              <div id="livePlaylistList" class="live-list"></div>
+            </section>
+            <section class="live-card live-scenes-card">
+              <div class="mini-head">
+                <h3>Scenes In Active Playlist</h3>
+                <span id="liveSceneSummary" class="midi-mini-status">Start a playlist to browse scenes.</span>
+              </div>
+              <div id="liveSceneList" class="live-list"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section id="effectForgeView" class="app-view forge-view" hidden>
+        <section class="forge-panel">
+          <div class="forge-head">
+            <div>
+              <h2>
+                Effect Forge
+                <span class="experimental-pill">Experimental</span>
+              </h2>
+              <p>Draft new LedFx effect modules and Workshop profiles without installing them automatically.</p>
+            </div>
+            <div class="forge-actions">
+              <button id="forgeRandomizeButton" type="button">Randomize</button>
+              <button id="forgeSaveAsButton" type="button">Save</button>
+            </div>
+            <p id="forgeSaveStatus" class="forge-save-status"></p>
+          </div>
+
+          <div class="forge-grid">
+            <section class="forge-card">
+              <h3>Effect Shape</h3>
+              <div class="forge-form-grid">
+                <label>
+                  <span class="field-title">
+                    Effect name
+                    <button class="info-button" type="button" data-tooltip="Used for the Python class, LedFx display name and Workshop effect profile id.">i</button>
+                  </span>
+                  <input id="forgeEffectNameInput" type="text" maxlength="64" value="Energy Bloom" />
+                </label>
+                <label>
+                  <span class="field-title">
+                    Effect source
+                    <button class="info-button" type="button" data-tooltip="Choose LedFx-based for a safer draft related to an installed effect family. Choose Custom Workshop to generate a standalone Python module with its own render logic, without requiring a matching LedFx base effect.">i</button>
+                  </span>
+                  <select id="forgeBehaviorSelect">
+                    <option value="static">Solid color / dimmer</option>
+                    <option value="gradient">Gradient roll</option>
+                    <option value="melt">Audio melt</option>
+                    <option value="scroll">Scroll / chase</option>
+                    <option value="energy" selected>Energy wash</option>
+                    <option value="rain">Rain trails</option>
+                    <option value="bar">Bar meter</option>
+                    <option value="multibar">Multi-bar layers</option>
+                    <option value="equalizer">Equalizer 2D</option>
+                    <option value="concentric">Concentric pulse</option>
+                    <option value="blade">Blade power</option>
+                    <option value="bpm_strobe">BPM strobe</option>
+                    <option value="bass_strobe">Bass strobe</option>
+                  </select>
+                  <small id="forgeBehaviorDescription" class="forge-option-description"></small>
+                </label>
+                <label>
+                  <span class="field-title">
+                    Reactivity
+                    <button class="info-button" type="button" data-tooltip="Chooses whether the draft expects LedFx audio data hooks.">i</button>
+                  </span>
+                  <select id="forgeReactivitySelect">
+                    <option value="sound">Sound-reactive</option>
+                    <option value="non_sound">Non-sound-reactive</option>
+                  </select>
+                  <small id="forgeReactivityDescription" class="forge-option-description"></small>
+                </label>
+                <label>
+                  <span class="field-title">
+                    Frequency focus
+                    <button class="info-button" type="button" data-tooltip="Adds a default frequency role to the generated Workshop effect profile.">i</button>
+                  </span>
+                  <select id="forgeFrequencySelect">
+                    <option value="Beat">Beat</option>
+                    <option value="Bass">Bass</option>
+                    <option value="Lows (beat+bass)">Lows (beat+bass)</option>
+                    <option value="Mids">Mids</option>
+                    <option value="High">High</option>
+                  </select>
+                  <small id="forgeFrequencyDescription" class="forge-option-description"></small>
+                </label>
+              </div>
+            </section>
+
+            <section class="forge-card">
+              <h3>Response</h3>
+              <div class="forge-slider-grid">
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Intensity
+                      <button class="info-button" type="button" data-tooltip="Sets the default brightness and generated energy range. Higher values make the draft more suitable for energy, drop and peak scenes.">i</button>
+                    </span>
+                    <span id="forgeIntensityValue" class="range-value">70%</span>
+                  </span>
+                  <input id="forgeIntensityInput" type="range" min="0" max="100" value="70" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Motion
+                      <button class="info-button" type="button" data-tooltip="Controls phase speed, scroll rate and movement-heavy defaults in the generated module and profile.">i</button>
+                    </span>
+                    <span id="forgeMotionValue" class="range-value">58%</span>
+                  </span>
+                  <input id="forgeMotionInput" type="range" min="0" max="100" value="58" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Detail
+                      <button class="info-button" type="button" data-tooltip="Controls stripe count, sparkle density, band resolution and how many small accents the draft produces.">i</button>
+                    </span>
+                    <span id="forgeDetailValue" class="range-value">52%</span>
+                  </span>
+                  <input id="forgeDetailInput" type="range" min="0" max="100" value="52" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Decay
+                      <button class="info-button" type="button" data-tooltip="Sets how quickly the effect falls back after motion or audio hits. Lower is snappier, higher leaves more tail.">i</button>
+                    </span>
+                    <span id="forgeDecayValue" class="range-value">46%</span>
+                  </span>
+                  <input id="forgeDecayInput" type="range" min="0" max="100" value="46" />
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Flash
+                      <button class="info-button" type="button" data-tooltip="Adds transient peaks and strobe-like gating. Keep it lower for musical motion, higher for peak tools.">i</button>
+                    </span>
+                    <span id="forgeFlashValue" class="range-value">35%</span>
+                  </span>
+                  <input id="forgeFlashInput" type="range" min="0" max="100" value="35" />
+                </label>
+              </div>
+            </section>
+
+            <section class="forge-card forge-preview-card">
+              <div class="mini-head">
+                <h3>Internal Preview</h3>
+                <button id="forgePreviewPauseButton" type="button">Pause</button>
+              </div>
+              <canvas id="forgePreviewCanvas" class="forge-preview-canvas" width="640" height="128"></canvas>
+              <div class="forge-preview-meta">
+                <strong id="forgePreviewEffect">Energy Bloom</strong>
+                <span id="forgePreviewStatus">Local simulator</span>
+              </div>
+              <div class="forge-preview-controls">
+                <label>
+                  <span class="field-title">
+                    Preview palette
+                    <button class="info-button" type="button" data-tooltip="Only changes the local preview colors. The exported effect stays generic and uses LedFx gradient/color parameters.">i</button>
+                  </span>
+                  <select id="forgePreviewPaletteSelect">
+                    <option value="auto">Auto</option>
+                  </select>
+                </label>
+                <label class="range-field">
+                  <span class="range-label">
+                    <span class="field-title">
+                      Demo drive
+                      <button class="info-button" type="button" data-tooltip="Simulates audio pressure for the internal preview. Exported code still uses real LedFx audio hooks when Reactivity is sound-reactive.">i</button>
+                    </span>
+                    <span id="forgePreviewDriveValue" class="range-value">65%</span>
+                  </span>
+                  <input id="forgePreviewDriveInput" type="range" min="0" max="100" value="65" />
+                </label>
+                <label class="forge-preview-toggle">
+                  <input id="forgePreviewDemoInput" type="checkbox" checked />
+                  <span>
+                    <strong>Auto demo signal</strong>
+                    <small>Animates bass, beat and high-frequency accents locally.</small>
+                  </span>
+                </label>
+              </div>
+              <div class="forge-preview-param-panel">
+                <div class="mini-head forge-preview-param-head">
+                  <div>
+                    <h3>Preview Config</h3>
+                    <p id="forgePreviewParamDescription">Edit the selected effect config before exporting.</p>
+                  </div>
+                  <button id="forgePreviewResetParamsButton" type="button">Reset</button>
+                </div>
+                <div id="forgePreviewParamFields" class="forge-preview-param-grid"></div>
+              </div>
+            </section>
+
+            <div class="forge-module-stack">
+              <section class="forge-card forge-output-card">
+                <div class="mini-head">
+                  <h3>LedFx Module Draft</h3>
+                  <button id="copyForgeCodeButton" type="button">Copy Code</button>
+                </div>
+                <pre id="forgeCodeOutput" class="forge-output"></pre>
+              </section>
+
+              <section class="forge-card forge-output-card">
+                <div class="mini-head">
+                  <h3>Import Instructions</h3>
+                  <button id="copyForgeInstructionsButton" type="button">Copy Instructions</button>
+                </div>
+                <pre id="forgeInstructionsOutput" class="forge-output"></pre>
+              </section>
+            </div>
+
+            <section class="forge-card forge-output-card">
+              <div class="mini-head">
+                <h3>Workshop Effect Profile</h3>
+                <button id="copyForgeProfileButton" type="button">Copy Profile YAML</button>
+              </div>
+              <pre id="forgeProfileOutput" class="forge-output"></pre>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section id="midiMapperView" class="app-view midi-view" hidden>
+        <section class="midi-panel">
+          <div class="midi-head">
+            <div>
+              <h2>MIDI Patch</h2>
+              <p>Map MIDI pads or knobs to LedFx playlists and playlist transport.</p>
+            </div>
+            <div class="midi-actions">
+              <button id="midiConnectButton" class="primary-action" type="button">Connect MIDI</button>
+              <button id="midiRefreshLibraryButton" type="button">Refresh Playlists</button>
+            </div>
+          </div>
+
+          <div class="midi-grid">
+            <section class="midi-card">
+              <h3>
+                MIDI Input
+                <button class="info-button" type="button" data-tooltip="Connect browser Web MIDI to your controller. Input learns and triggers mappings; output drives pad LED feedback.">i</button>
+              </h3>
+              <label>
+                <span class="field-title">
+                  <span>Controller input</span>
+                  <button class="info-button" type="button" data-tooltip="Receives MIDI notes or CC messages from your controller. Use it for Learn and live triggering.">i</button>
+                </span>
+                <select id="midiInputSelect"></select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Controller output</span>
+                  <button class="info-button" type="button" data-tooltip="Sends LED feedback back to the controller. Pick the same hardware device when you want mapped pads to light up.">i</button>
+                </span>
+                <select id="midiOutputSelect"></select>
+              </label>
+              <p id="midiStatus" class="midi-status">MIDI not connected.</p>
+              <p class="midi-browser-note">
+                Web MIDI works best in Chrome, Edge, Opera and other Chromium browsers on desktop. Safari and Firefox usually do not expose MIDI devices without experimental flags or extensions.
+              </p>
+            </section>
+
+            <section class="midi-card">
+              <h3>
+                Scene Transport
+                <button class="info-button" type="button" data-tooltip="Manual and learned controls for Blackout, Previous and Next. Previous and Next step through scenes in the currently active LedFx playlist only.">i</button>
+              </h3>
+              <div class="midi-direct-grid">
+                <button id="midiBlackoutButton" type="button">Blackout</button>
+                <button id="midiPrevButton" type="button">Previous</button>
+                <button id="midiNextButton" type="button">Next</button>
+              </div>
+              <div class="midi-learn-grid">
+                <button id="midiMapBlackoutButton" type="button">Learn Blackout</button>
+                <button id="midiMapPrevButton" type="button">Learn Previous</button>
+                <button id="midiMapNextButton" type="button">Learn Next</button>
+              </div>
+              <p class="midi-help">Blackout toggles LedFx output brightness to zero and restores it on the next press. Previous and Next step through scenes inside the active LedFx playlist.</p>
+            </section>
+
+            <section class="midi-card midi-controller-card">
+              <h3>
+                Controller Feedback
+                <button class="info-button" type="button" data-tooltip="Global defaults for controller LEDs. Individual mappings can override color, mode and LED protocol in their Edit window.">i</button>
+              </h3>
+              <div class="midi-profile-bar">
+                <label>
+                  <span class="field-title">
+                    <span>Profile</span>
+                    <button class="info-button" type="button" data-tooltip="Profiles store controller LED defaults and mappings in this browser, so you can return to a known performance setup quickly.">i</button>
+                  </span>
+                  <select id="midiProfileSelect"></select>
+                </label>
+                <label>
+                  Profile name
+                  <input id="midiProfileNameInput" type="text" maxlength="64" placeholder="e.g. club controller set" />
+                </label>
+                <div class="midi-profile-actions">
+                  <button id="midiSaveProfileButton" type="button">Save Profile</button>
+                  <button id="midiLoadProfileButton" type="button">Load</button>
+                  <button id="midiDeleteProfileButton" type="button" class="danger">Delete</button>
+                </div>
+              </div>
+              <div class="midi-settings-grid">
+                <label class="midi-color-field">
+                  <span class="field-title">
+                    <span>On color</span>
+                    <button class="info-button" type="button" data-tooltip="MIDI velocity sent when a mapped playlist/action is active. In channel-brightness mode the active pad is sent at full LED brightness.">i</button>
+                  </span>
+                  <select id="midiColorOnSelect"></select>
+                </label>
+                <label class="midi-color-field">
+                  <span class="field-title">
+                    <span>Off color</span>
+                    <button class="info-button" type="button" data-tooltip="MIDI velocity sent when a mapping is inactive. Use Black for fully dark pads or a dim color as a locator light. Channel-brightness mode sends inactive pads at minimum LED brightness.">i</button>
+                  </span>
+                  <select id="midiColorOffSelect"></select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    <span>Pad mode</span>
+                    <button class="info-button" type="button" data-tooltip="Latch keeps LEDs synced with the active playlist or blackout state. Momentary flashes after a press. Off disables LED feedback.">i</button>
+                  </span>
+                  <select id="midiFeedbackModeSelect">
+                    <option value="latch">Latch active playlist</option>
+                    <option value="momentary">Momentary flash</option>
+                    <option value="off">LED feedback off</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    <span>LED protocol</span>
+                    <button class="info-button" type="button" data-tooltip="Choose how Workshop sends LED feedback. Channel-brightness uses separate MIDI channels for dim and full-bright states; same-channel sends feedback on the learned channel.">i</button>
+                  </span>
+                  <select id="midiLedProtocolSelect">
+                    <option value="akai_apc_mini_mk2">Channel-brightness RGB feedback</option>
+                    <option value="generic">Same-channel RGB feedback</option>
+                  </select>
+                </label>
+              </div>
+              <p class="midi-help">Colors use a 0-127 RGB velocity table when the controller supports it. These defaults apply to new mappings, while each mapping can override its own feedback settings.</p>
+            </section>
+
+            <section class="midi-card midi-playlists-card">
+              <div class="mini-head">
+                <h3>
+                  Playlists
+                  <button class="info-button" type="button" data-tooltip="Each playlist can get its own Start mapping. Transport actions keep controlling the active playlist after a playlist is started.">i</button>
+                </h3>
+                <span id="midiPlaylistSummary" class="midi-mini-status">No playlists loaded.</span>
+              </div>
+              <div id="midiPlaylistMapList" class="midi-playlist-map-list"></div>
+            </section>
+
+            <section class="midi-card midi-mappings-card">
+              <div class="mini-head">
+                <h3>
+                  Mappings
+                  <button class="info-button" type="button" data-tooltip="Saved MIDI assignments. Edit a mapping to change its action, target playlist, LED colors, feedback mode or controller protocol.">i</button>
+                </h3>
+                <button id="midiClearMappingsButton" type="button">Clear All</button>
+              </div>
+              <div id="midiMappingList" class="midi-mapping-list"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div id="modalBackdrop" class="modal-backdrop" hidden>
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-head">
+          <h2 id="modalTitle">Edit</h2>
+          <button id="closeModalButton" type="button">Close</button>
+        </div>
+        <div class="modal-body">
+          <div id="styleEditor" class="style-editor" hidden>
+            <div class="editor-head">
+              <label>
+                Style name
+                <input id="styleNameInput" type="text" maxlength="64" />
+              </label>
+              <div class="editor-actions">
+                <button id="saveStyleButton" type="button">Save Style</button>
+                <button id="closeStyleEditorButton" type="button">Close</button>
+              </div>
+            </div>
+            <label>
+              Description
+              <textarea id="styleDescriptionInput" maxlength="280"></textarea>
+            </label>
+            <div id="styleDefaultFields" class="style-default-grid"></div>
+            <details class="style-weight-editor" open>
+              <summary>Scene Type Weights</summary>
+              <div id="styleSceneWeightFields" class="style-weight-grid"></div>
+            </details>
+            <details class="style-weight-editor">
+              <summary>Effect Bias</summary>
+              <div id="styleEffectBiasFields" class="style-weight-grid"></div>
+            </details>
+            <details class="style-weight-editor">
+              <summary>Palette Bias</summary>
+              <div id="stylePaletteBiasFields" class="style-weight-grid"></div>
+            </details>
+          </div>
+
+          <div id="paletteEditor" class="palette-editor" hidden>
+            <div class="editor-head">
+              <label>
+                Name
+                <input id="paletteNameInput" type="text" maxlength="80" />
+              </label>
+              <div class="editor-actions">
+                <button id="randomPaletteButton" type="button">Random</button>
+                <button id="savePaletteButton" type="button">Save Palette</button>
+                <button id="closePaletteEditorButton" type="button">Close</button>
+              </div>
+            </div>
+            <label class="palette-start-toggle">
+              <input id="paletteBlackStartInput" type="checkbox" checked />
+              <span>
+                <strong>Black start</strong>
+                <small>Keep the first gradient stop black. Turn this off to edit the start color.</small>
+              </span>
+            </label>
+            <div id="paletteGradientPreview" class="palette-gradient-preview"></div>
+            <div id="paletteColorFields" class="gradient-stop-grid"></div>
+          </div>
+
+          <div id="presetEditor" class="preset-editor" hidden>
+            <div class="editor-head">
+              <label>
+                Preset name
+                <input id="presetEditNameInput" type="text" maxlength="64" />
+              </label>
+              <label id="presetEditDeviceField">
+                Temporary Device
+                <select id="presetEditDeviceSelect"></select>
+                <small>Used only while updating a saved LedFx preset; presets stay global for the effect.</small>
+              </label>
+              <div class="editor-actions">
+                <button id="previewPresetEditButton" type="button">Preview</button>
+                <button id="savePresetEditButton" type="button">Save Preset</button>
+                <button id="closePresetEditorButton" type="button">Close</button>
+              </div>
+            </div>
+            <p id="presetEditStatus" class="preset-edit-status">Editing user preset</p>
+            <div id="presetParamFields" class="param-grid"></div>
+          </div>
+
+          <div id="presetBankEditor" class="preset-editor preset-bank-editor" hidden>
+            <div class="editor-head">
+              <label>
+                Bank preset name
+                <input id="presetBankNameInput" type="text" maxlength="64" />
+              </label>
+              <label>
+                Tags
+                <input id="presetBankTagInput" type="text" maxlength="160" placeholder="preset-bank, peak, warm" />
+              </label>
+              <div class="editor-actions">
+                <button id="previewPresetBankButton" type="button">Preview</button>
+                <button id="savePresetBankButton" type="button">Save Bank Preset</button>
+                <button id="closePresetBankEditorButton" type="button">Close</button>
+              </div>
+            </div>
+            <p id="presetBankEditStatus" class="preset-edit-status">Editing local preset bank item</p>
+            <div id="presetBankParamFields" class="param-grid"></div>
+          </div>
+
+          <div id="tabsGuidePanel" class="tabs-guide-panel" hidden>
+            <div class="guide-list">
+              <article>
+                <h3>Scene Factory</h3>
+                <p>Build batches of audio-reactive LedFx scenes, preview them, approve the good ones and send them to LedFx only when ready.</p>
+              </article>
+              <article>
+                <h3>Preset Lab</h3>
+                <p>Generate and edit preset drafts for existing LedFx effects. Drafts stay local until you press Send to LedFx; the Preset Bank stores reusable local bases for Scene Factory.</p>
+              </article>
+              <article>
+                <h3>Effect Forge</h3>
+                <p>Experimental workspace for drafting new LedFx effect module files and matching Workshop profiles. It saves files for manual review and import.</p>
+              </article>
+              <article>
+                <h3>Live Mode</h3>
+                <p>Performance-focused playlist launch and transport. Previous and Next only step inside the currently active LedFx playlist.</p>
+              </article>
+              <article>
+                <h3>Show Packs</h3>
+                <p>Export or import a portable ZIP with Workshop profiles, generated queue, LedFx scenes, playlists and user preset configuration.</p>
+              </article>
+              <article>
+                <h3>MIDI Patch</h3>
+                <p>Manage playlists and map playlist start, stop, previous and next controls to a Web MIDI controller in supported browsers.</p>
+              </article>
+            </div>
+          </div>
+
+          <div id="playlistEditor" class="playlist-editor" hidden>
+            <p id="playlistEditStatus" class="playlist-edit-status">New playlist draft</p>
+            <div class="playlist-form-grid">
+              <label>
+                Name
+                <input id="playlistNameInput" type="text" maxlength="64" value="Scene Factory Set" />
+              </label>
+              <label>
+                Mode
+                <select id="playlistModeSelect">
+                  <option value="sequence">Sequence</option>
+                  <option value="shuffle">Shuffle</option>
+                </select>
+              </label>
+              <label>
+                Scene time (s)
+                <input id="playlistDurationInput" type="number" min="0.5" max="3600" step="0.5" value="30" />
+              </label>
+              <label>
+                Search filter
+                <input id="playlistTagFilterInput" type="text" maxlength="160" placeholder="tag, palette, name or effect" />
+              </label>
+            </div>
+            <div class="playlist-actions">
+              <div class="playlist-action-group">
+                <button id="selectLsfScenesButton" type="button">Select LSF</button>
+                <button id="selectFilteredScenesButton" type="button">Select Filtered</button>
+                <button id="clearPlaylistScenesButton" type="button">Clear</button>
+              </div>
+              <div class="playlist-action-group playlist-save-group">
+                <button id="savePlaylistButton" type="button">Save Playlist</button>
+              </div>
+              <div class="playlist-action-group playlist-transport-group">
+                <button id="stopPlaylistButton" type="button">Stop</button>
+                <button id="prevPlaylistButton" type="button">Prev</button>
+                <button id="nextPlaylistButton" type="button">Next</button>
+              </div>
+            </div>
+            <div id="playlistScenePicker" class="playlist-scene-picker"></div>
+          </div>
+
+          <div id="midiMappingEditor" class="midi-mapping-editor" hidden>
+            <p id="midiMappingEditStatus" class="playlist-edit-status">Editing MIDI mapping</p>
+            <div class="midi-mapping-form-grid">
+              <label>
+                <span class="field-title">
+                  <span>Action</span>
+                  <button class="info-button" type="button" data-tooltip="What the learned MIDI message should do when pressed or moved.">i</button>
+                </span>
+                <select id="midiEditActionSelect">
+                  <option value="start">Start playlist</option>
+                  <option value="stop">Stop active playlist</option>
+                  <option value="prev">Previous scene</option>
+                  <option value="next">Next scene</option>
+                  <option value="blackout">Blackout toggle</option>
+                </select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Playlist target</span>
+                  <button class="info-button" type="button" data-tooltip="Only Start playlist uses a fixed playlist. Stop, Previous and Next always control the currently active LedFx playlist.">i</button>
+                </span>
+                <select id="midiEditPlaylistSelect"></select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>MIDI message</span>
+                  <button class="info-button" type="button" data-tooltip="The learned note or control-change message. It is kept read-only so the mapping stays tied to the physical control you pressed.">i</button>
+                </span>
+                <input id="midiEditMessageInput" type="text" readonly />
+              </label>
+              <label class="midi-color-field">
+                <span class="field-title">
+                  <span>On color</span>
+                  <button class="info-button" type="button" data-tooltip="Override the default active LED color for this mapping. The value is sent as the MIDI velocity from the controller color table.">i</button>
+                </span>
+                <select id="midiEditColorOnSelect"></select>
+              </label>
+              <label class="midi-color-field">
+                <span class="field-title">
+                  <span>Off color</span>
+                  <button class="info-button" type="button" data-tooltip="Override the default inactive LED color for this mapping. In channel-brightness mode it is sent at minimum LED brightness.">i</button>
+                </span>
+                <select id="midiEditColorOffSelect"></select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Pad mode</span>
+                  <button class="info-button" type="button" data-tooltip="Use controller default inherits the global feedback mode. Latch syncs LEDs to active state, Momentary flashes, Off disables this mapping's LED feedback.">i</button>
+                </span>
+                <select id="midiEditFeedbackModeSelect">
+                  <option value="inherit">Use controller default</option>
+                  <option value="latch">Latch active playlist</option>
+                  <option value="momentary">Momentary flash</option>
+                  <option value="off">LED feedback off</option>
+                </select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>LED protocol</span>
+                  <button class="info-button" type="button" data-tooltip="Use controller default inherits the global protocol. Channel-brightness uses separate MIDI channels for dim/full LED states; same-channel reuses the learned channel.">i</button>
+                </span>
+                <select id="midiEditLedProtocolSelect">
+                  <option value="inherit">Use controller default</option>
+                  <option value="akai_apc_mini_mk2">Channel-brightness RGB feedback</option>
+                  <option value="generic">Same-channel RGB feedback</option>
+                </select>
+              </label>
+            </div>
+            <div class="editor-actions midi-editor-actions">
+              <button id="saveMidiMappingEditButton" type="button">Save Mapping</button>
+              <button id="testMidiMappingEditButton" type="button">Test</button>
+              <button id="closeMidiMappingEditorButton" type="button">Close</button>
+            </div>
+          </div>
+
+          <div id="sceneEditorHost" hidden></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="infoTooltip" class="info-tooltip" hidden></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js?v=20260826-selected-first"></script>
+  </body>
+</html>

@@ -1,0 +1,430 @@
+{
+  "palettes": [
+    {
+      "id": "acid_current",
+      "name": "Acid",
+      "colors": {
+        "low": "#163b00",
+        "mid": "#7cff00",
+        "high": "#00f5d4",
+        "accent": "#d8ff3d",
+        "dark": "#000000",
+        "strobe": "#f2ffe8",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #163b00 38%, #7cff00 62%, #00f5d4 84%, #d8ff3d 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 38,
+        "mid": 62,
+        "high": 84,
+        "accent": 100
+      }
+    },
+    {
+      "id": "sodium_laser",
+      "name": "Sodium Laser",
+      "colors": {
+        "low": "#4a0900",
+        "mid": "#ff3b00",
+        "high": "#ffb000",
+        "accent": "#ffe08a",
+        "dark": "#000000",
+        "strobe": "#fff1c2",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #4a0900 38%, #ff3b00 62%, #ffb000 84%, #ffe08a 100%)"
+    },
+    {
+      "id": "subzero",
+      "name": "Subzero",
+      "colors": {
+        "low": "#00195c",
+        "mid": "#006dff",
+        "high": "#62f2ff",
+        "accent": "#d8fbff",
+        "dark": "#000000",
+        "strobe": "#f0feff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #00195c 38%, #006dff 62%, #62f2ff 84%, #d8fbff 100%)"
+    },
+    {
+      "id": "magenta_oil",
+      "name": "Magenta Oil",
+      "colors": {
+        "low": "#2a005c",
+        "mid": "#9b00ff",
+        "high": "#ff3bbd",
+        "accent": "#ffd1ef",
+        "dark": "#000000",
+        "strobe": "#fff0fa",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #2a005c 38%, #9b00ff 62%, #ff3bbd 84%, #ffd1ef 100%)"
+    },
+    {
+      "id": "steel_pulse",
+      "name": "Steel Pulse",
+      "colors": {
+        "low": "#202833",
+        "mid": "#586575",
+        "high": "#b8cedb",
+        "accent": "#e8f9ff",
+        "dark": "#000000",
+        "strobe": "#f6fdff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #202833 38%, #586575 62%, #b8cedb 84%, #e8f9ff 100%)"
+    },
+    {
+      "id": "thermal_rave",
+      "name": "Thermal Rave",
+      "colors": {
+        "low": "#4d0000",
+        "mid": "#ff2400",
+        "high": "#ffc400",
+        "accent": "#fff0a6",
+        "dark": "#000000",
+        "strobe": "#fff7d8",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #4d0000 38%, #ff2400 62%, #ffc400 84%, #fff0a6 100%)"
+    },
+    {
+      "id": "jungle_pressure",
+      "name": "Jungle Pressure",
+      "colors": {
+        "low": "#00301c",
+        "mid": "#00a85a",
+        "high": "#9dff57",
+        "accent": "#ffd35a",
+        "dark": "#000000",
+        "strobe": "#f0ffe5",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #00301c 24%, #006b3b 50%, #00a85a 76%, #9dff57 100%)"
+    },
+    {
+      "id": "warm_room",
+      "name": "Warm Room",
+      "colors": {
+        "low": "#401000",
+        "mid": "#c94a12",
+        "high": "#ffd166",
+        "accent": "#fff0c9",
+        "dark": "#000000",
+        "strobe": "#fff6df",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #401000 38%, #c94a12 62%, #ffd166 84%, #fff0c9 100%)"
+    },
+    {
+      "id": "dub_depth",
+      "name": "Dub Depth",
+      "colors": {
+        "low": "#00261b",
+        "mid": "#1f6b4b",
+        "high": "#7bc99a",
+        "accent": "#d6b35f",
+        "dark": "#000000",
+        "strobe": "#e7f7dc",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #00261b 26%, #0f4734 52%, #1f6b4b 78%, #7bc99a 100%)"
+    },
+    {
+      "id": "grime_voltage",
+      "name": "Grime Voltage",
+      "colors": {
+        "low": "#230047",
+        "mid": "#7d00ff",
+        "high": "#00e5ff",
+        "accent": "#eaff00",
+        "dark": "#000000",
+        "strobe": "#ffffff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #230047 22%, #7d00ff 52%, #00e5ff 80%, #eaff00 100%)"
+    },
+    {
+      "id": "warehouse_red",
+      "name": "Warehouse Red",
+      "colors": {
+        "low": "#330008",
+        "mid": "#b30020",
+        "high": "#ff174d",
+        "accent": "#ffb3c4",
+        "dark": "#000000",
+        "strobe": "#fff2f5",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #330008 24%, #730015 52%, #b30020 78%, #ff174d 100%)"
+    },
+    {
+      "id": "cyan_afterhours",
+      "name": "Cyan Afterhours",
+      "colors": {
+        "low": "#002b36",
+        "mid": "#007c89",
+        "high": "#29e7ff",
+        "accent": "#d8fbff",
+        "dark": "#000000",
+        "strobe": "#f0feff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 16%, #002b36 36%, #007c89 60%, #29e7ff 84%, #d8fbff 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 16,
+        "low": 36,
+        "mid": 60,
+        "high": 84,
+        "accent": 100
+      }
+    },
+    {
+      "id": "infra_rhythm",
+      "name": "Infra Rhythm",
+      "colors": {
+        "low": "#270006",
+        "mid": "#b0001e",
+        "high": "#ff4a00",
+        "accent": "#ffd460",
+        "dark": "#000000",
+        "strobe": "#fff0c7",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 15%, #270006 34%, #b0001e 60%, #ff4a00 84%, #ffd460 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 15,
+        "low": 34,
+        "mid": 60,
+        "high": 84,
+        "accent": 100
+      }
+    },
+    {
+      "id": "violet_fault",
+      "name": "Violet Fault",
+      "colors": {
+        "low": "#1a003d",
+        "mid": "#6800d9",
+        "high": "#d31dff",
+        "accent": "#ffb2f1",
+        "dark": "#000000",
+        "strobe": "#fff0fb",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #1a003d 39%, #6800d9 63%, #d31dff 85%, #ffb2f1 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 39,
+        "mid": 63,
+        "high": 85,
+        "accent": 100
+      }
+    },
+    {
+      "id": "emerald_smoke",
+      "name": "Emerald Smoke",
+      "colors": {
+        "low": "#00291d",
+        "mid": "#0f7a53",
+        "high": "#4dff9a",
+        "accent": "#c8ffd9",
+        "dark": "#000000",
+        "strobe": "#effff2",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 20%, #00291d 40%, #0f7a53 64%, #4dff9a 86%, #c8ffd9 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 20,
+        "low": 40,
+        "mid": 64,
+        "high": 86,
+        "accent": 100
+      }
+    },
+    {
+      "id": "amber_dust",
+      "name": "Amber Dust",
+      "colors": {
+        "low": "#2d1500",
+        "mid": "#ad5a00",
+        "high": "#ffb000",
+        "accent": "#ffe69b",
+        "dark": "#000000",
+        "strobe": "#fff6db",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #2d1500 38%, #ad5a00 62%, #ffb000 85%, #ffe69b 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 38,
+        "mid": 62,
+        "high": 85,
+        "accent": 100
+      }
+    },
+    {
+      "id": "icebreak",
+      "name": "Icebreak",
+      "colors": {
+        "low": "#001632",
+        "mid": "#004d9f",
+        "high": "#5bd7ff",
+        "accent": "#e0ffff",
+        "dark": "#000000",
+        "strobe": "#f6ffff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 16%, #001632 35%, #004d9f 60%, #5bd7ff 85%, #e0ffff 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 16,
+        "low": 35,
+        "mid": 60,
+        "high": 85,
+        "accent": 100
+      }
+    },
+    {
+      "id": "rustwire",
+      "name": "Rustwire",
+      "colors": {
+        "low": "#301000",
+        "mid": "#b35f00",
+        "high": "#ff7f00",
+        "accent": "#80ffbd",
+        "dark": "#000000",
+        "strobe": "#f8fff2",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #301000 37%, #b35f00 62%, #ff7f00 82%, #80ffbd 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 37,
+        "mid": 62,
+        "high": 82,
+        "accent": 100
+      }
+    },
+    {
+      "id": "ultraviolet_sub",
+      "name": "Ultraviolet Sub",
+      "colors": {
+        "low": "#080019",
+        "mid": "#2500cc",
+        "high": "#7a00ff",
+        "accent": "#00ff99",
+        "dark": "#000000",
+        "strobe": "#f2fff9",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #080019 34%, #2500cc 58%, #7a00ff 80%, #00ff99 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 34,
+        "mid": 58,
+        "high": 80,
+        "accent": 100
+      }
+    },
+    {
+      "id": "golden_pressure",
+      "name": "Golden Pressure",
+      "colors": {
+        "low": "#2b2200",
+        "mid": "#8a7200",
+        "high": "#ffe126",
+        "accent": "#dcff6b",
+        "dark": "#000000",
+        "strobe": "#ffffed",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 17%, #2b2200 38%, #8a7200 63%, #ffe126 86%, #dcff6b 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 17,
+        "low": 38,
+        "mid": 63,
+        "high": 86,
+        "accent": 100
+      }
+    },
+    {
+      "id": "petrol_lime",
+      "name": "Petrol Lime",
+      "colors": {
+        "low": "#001f24",
+        "mid": "#00547f",
+        "high": "#00ff87",
+        "accent": "#bdff2d",
+        "dark": "#000000",
+        "strobe": "#f3ffe5",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #001f24 38%, #00547f 60%, #00ff87 82%, #bdff2d 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 38,
+        "mid": 60,
+        "high": 82,
+        "accent": 100
+      }
+    },
+    {
+      "id": "rose_circuit",
+      "name": "Rose Circuit",
+      "colors": {
+        "low": "#220013",
+        "mid": "#b21a7d",
+        "high": "#ff4cff",
+        "accent": "#ffd1ef",
+        "dark": "#000000",
+        "strobe": "#fff2fb",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #220013 39%, #b21a7d 63%, #ff4cff 84%, #ffd1ef 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 39,
+        "mid": 63,
+        "high": 84,
+        "accent": 100
+      }
+    },
+    {
+      "id": "mono_flash",
+      "name": "Mono Flash",
+      "colors": {
+        "low": "#202020",
+        "mid": "#757575",
+        "high": "#e0ffff",
+        "accent": "#ffffff",
+        "dark": "#000000",
+        "strobe": "#ffffff",
+        "background": "#000000"
+      },
+      "gradient": "linear-gradient(90deg, #000000 0%, #000000 18%, #202020 40%, #757575 64%, #e0ffff 86%, #ffffff 100%)",
+      "positions": {
+        "background": 0,
+        "dark": 18,
+        "low": 40,
+        "mid": 64,
+        "high": 86,
+        "accent": 100
+      }
+    }
+  ]
+}

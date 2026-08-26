@@ -1,0 +1,910 @@
+{
+  "scene_types": {
+    "ambient": {
+      "energy": [
+        0.05,
+        0.35
+      ],
+      "description": "slow texture, black space and low visual pressure"
+    },
+    "dark": {
+      "energy": [
+        0.05,
+        0.4
+      ],
+      "description": "minimal response, shadows and restrained accents"
+    },
+    "intro": {
+      "energy": [
+        0.05,
+        0.35
+      ],
+      "description": "opening texture with subtle audio response"
+    },
+    "warmup": {
+      "energy": [
+        0.2,
+        0.55
+      ],
+      "description": "early-set motion, restrained but clearly rhythmic"
+    },
+    "breakdown": {
+      "energy": [
+        0.1,
+        0.45
+      ],
+      "description": "reduced arrangement, space and sparse reactive movement"
+    },
+    "groove": {
+      "energy": [
+        0.25,
+        0.65
+      ],
+      "description": "steady pulse for kick, bass and rolling movement"
+    },
+    "energy": {
+      "energy": [
+        0.45,
+        0.8
+      ],
+      "description": "active musical response without full peak intensity"
+    },
+    "bass": {
+      "energy": [
+        0.35,
+        0.85
+      ],
+      "description": "low-end focused response for kick, bass and sub movement"
+    },
+    "roll": {
+      "energy": [
+        0.55,
+        0.9
+      ],
+      "description": "rolling motion for fills, percussion runs and fast grooves"
+    },
+    "build": {
+      "energy": [
+        0.5,
+        0.85
+      ],
+      "description": "rising motion and pressure before a transition"
+    },
+    "tension": {
+      "energy": [
+        0.45,
+        0.85
+      ],
+      "description": "held pressure before a release or section change"
+    },
+    "transition": {
+      "energy": [
+        0.45,
+        0.9
+      ],
+      "description": "bridge scene for swaps, fills and phrase changes"
+    },
+    "drop": {
+      "energy": [
+        0.7,
+        1.0
+      ],
+      "description": "impact scene for bass hits and section changes"
+    },
+    "peak": {
+      "energy": [
+        0.8,
+        1.0
+      ],
+      "description": "maximum motion and brightness for high-intensity moments"
+    },
+    "finale": {
+      "energy": [
+        0.8,
+        1.0
+      ],
+      "description": "closing or end-of-phrase full intensity scene"
+    },
+    "strobe": {
+      "energy": [
+        0.75,
+        1.0
+      ],
+      "description": "beat-synced BPM Strobe and audio-hit flash scenes for short, sharp accents"
+    }
+  },
+  "layouts": [
+    "unison",
+    "alternate",
+    "mirror",
+    "accent"
+  ],
+  "layout_descriptions": {
+    "auto": "Best default. Scene Factory chooses unison, alternate, mirror or accent from the scene type, energy and number of selected Devices.",
+    "unison": "All Devices play the same role with the same musical intent. Use it for solid full-rig looks, drops, strobes and clean synchronized moments.",
+    "alternate": "Even and odd Devices get primary/secondary roles, often with different movement or mirrored settings. Good for call-and-response, groove and rolling patterns.",
+    "mirror": "Devices share the main look but use mirror/flip transforms when the effect supports them. Best for left/right symmetry, tunnels and balanced stage shapes.",
+    "accent": "Most Devices carry the main scene while the last selected Device becomes a hotter accent layer. Good for a center fixture, backlight, drop hit or extra peak detail."
+  },
+  "styles": {
+    "techno": {
+      "name": "Techno",
+      "description": "Hypnotic, mechanical and pressure-led: favors dark/groove/roll/build/tension/drop scenes with controlled flashes.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.65,
+        "variation": 0.58,
+        "brightness": 0.78,
+        "movement": 0.62,
+        "audio_response": 0.6,
+        "density": 0.55,
+        "flash": 0.48,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.7,
+        "dark": 0.9,
+        "intro": 0.65,
+        "warmup": 0.85,
+        "breakdown": 0.75,
+        "groove": 1.1,
+        "energy": 1.0,
+        "bass": 1.0,
+        "roll": 1.15,
+        "build": 1.0,
+        "tension": 1.1,
+        "transition": 1.05,
+        "drop": 1.1,
+        "peak": 0.9,
+        "finale": 0.9,
+        "strobe": 0.8
+      },
+      "effect_bias": {
+        "scroll": 1.0,
+        "energy": 1.2,
+        "rain": 0.8,
+        "bar": 1.1,
+        "multiBar": 1.0,
+        "strobe": 1.0,
+        "real_strobe": 1.0,
+        "gradient": 0.8,
+        "singleColor": 0.7,
+        "blade_power_plus": 1.1,
+        "equalizer2d": 0.9,
+        "melt": 0.8,
+        "concentric": 0.9
+      },
+      "palette_bias": {
+        "acid_current": 1.2,
+        "subzero": 1.0,
+        "magenta_oil": 1.0,
+        "thermal_rave": 0.9,
+        "warehouse_red": 1.1
+      }
+    },
+    "drum_and_bass": {
+      "name": "Drum and Bass",
+      "description": "Fast, bass-heavy and high motion: favors bass/roll/drop/peak/finale with more aggressive reactive effects.",
+      "defaults": {
+        "count": 32,
+        "energy": 0.78,
+        "variation": 0.68,
+        "brightness": 0.84,
+        "movement": 0.78,
+        "audio_response": 0.72,
+        "density": 0.62,
+        "flash": 0.58,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.35,
+        "dark": 0.55,
+        "intro": 0.25,
+        "warmup": 0.7,
+        "breakdown": 0.45,
+        "groove": 0.95,
+        "energy": 1.25,
+        "bass": 1.4,
+        "roll": 1.45,
+        "build": 1.15,
+        "tension": 1.2,
+        "transition": 1.15,
+        "drop": 1.35,
+        "peak": 1.2,
+        "finale": 1.25,
+        "strobe": 0.95
+      },
+      "effect_bias": {
+        "scroll": 1.25,
+        "energy": 1.15,
+        "rain": 0.8,
+        "bar": 1.15,
+        "multiBar": 1.25,
+        "strobe": 1.0,
+        "real_strobe": 1.05,
+        "gradient": 0.45,
+        "singleColor": 0.35,
+        "blade_power_plus": 1.25,
+        "equalizer2d": 1.15,
+        "melt": 0.45,
+        "concentric": 1.25
+      },
+      "palette_bias": {
+        "jungle_pressure": 1.45,
+        "subzero": 1.15,
+        "thermal_rave": 1.0,
+        "grime_voltage": 0.9,
+        "warehouse_red": 0.85
+      }
+    },
+    "house": {
+      "name": "House",
+      "description": "Warm, musical and groove-first: favors warmup/groove/energy with fewer harsh strobes and peaks.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.54,
+        "variation": 0.48,
+        "brightness": 0.82,
+        "movement": 0.52,
+        "audio_response": 0.56,
+        "density": 0.58,
+        "flash": 0.28,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.7,
+        "dark": 0.45,
+        "intro": 0.8,
+        "warmup": 1.25,
+        "breakdown": 0.7,
+        "groove": 1.45,
+        "energy": 1.1,
+        "bass": 0.95,
+        "roll": 1.1,
+        "build": 0.9,
+        "tension": 0.8,
+        "transition": 0.8,
+        "drop": 0.75,
+        "peak": 0.65,
+        "finale": 0.65,
+        "strobe": 0.35
+      },
+      "effect_bias": {
+        "scroll": 1.15,
+        "energy": 1.0,
+        "rain": 1.0,
+        "bar": 1.25,
+        "multiBar": 1.2,
+        "strobe": 0.35,
+        "real_strobe": 0.35,
+        "gradient": 1.0,
+        "singleColor": 0.85,
+        "blade_power_plus": 0.85,
+        "equalizer2d": 0.95,
+        "melt": 0.9,
+        "concentric": 0.55
+      },
+      "palette_bias": {
+        "warm_room": 1.5,
+        "sodium_laser": 1.0,
+        "steel_pulse": 0.9,
+        "acid_current": 0.8,
+        "magenta_oil": 0.75
+      }
+    },
+    "dub": {
+      "name": "Dub",
+      "description": "Deep, spacious and restrained: favors ambient/dark/intro/breakdown with lower flash and more negative space.",
+      "defaults": {
+        "count": 20,
+        "energy": 0.34,
+        "variation": 0.42,
+        "brightness": 0.62,
+        "movement": 0.36,
+        "audio_response": 0.64,
+        "density": 0.36,
+        "flash": 0.16,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 1.25,
+        "dark": 1.1,
+        "intro": 1.25,
+        "warmup": 1.05,
+        "breakdown": 1.3,
+        "groove": 0.95,
+        "energy": 0.45,
+        "bass": 1.0,
+        "roll": 0.65,
+        "build": 0.5,
+        "tension": 0.45,
+        "transition": 0.45,
+        "drop": 0.35,
+        "peak": 0.25,
+        "finale": 0.25,
+        "strobe": 0.15
+      },
+      "effect_bias": {
+        "scroll": 0.65,
+        "energy": 0.55,
+        "rain": 1.15,
+        "bar": 0.5,
+        "multiBar": 0.45,
+        "strobe": 0.12,
+        "real_strobe": 0.12,
+        "gradient": 1.35,
+        "singleColor": 1.25,
+        "blade_power_plus": 0.75,
+        "equalizer2d": 0.75,
+        "melt": 1.3,
+        "concentric": 0.5
+      },
+      "palette_bias": {
+        "dub_depth": 1.6,
+        "steel_pulse": 0.95,
+        "warm_room": 0.75,
+        "subzero": 0.65,
+        "magenta_oil": 0.55
+      }
+    },
+    "grime": {
+      "name": "Grime",
+      "description": "Cold, sharp and pressure-heavy: favors dark, bass, tension, transition, drop and strobe scenes with aggressive accents.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.7,
+        "variation": 0.66,
+        "brightness": 0.76,
+        "movement": 0.64,
+        "audio_response": 0.7,
+        "density": 0.52,
+        "flash": 0.62,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.35,
+        "dark": 1.2,
+        "intro": 0.65,
+        "warmup": 0.7,
+        "breakdown": 0.85,
+        "groove": 0.85,
+        "energy": 1.05,
+        "bass": 1.35,
+        "roll": 1.0,
+        "build": 1.05,
+        "tension": 1.35,
+        "transition": 1.2,
+        "drop": 1.35,
+        "peak": 1.05,
+        "finale": 0.9,
+        "strobe": 1.1
+      },
+      "effect_bias": {
+        "scroll": 0.85,
+        "energy": 1.1,
+        "rain": 0.6,
+        "bar": 1.0,
+        "multiBar": 1.1,
+        "strobe": 1.25,
+        "real_strobe": 1.2,
+        "gradient": 0.55,
+        "singleColor": 0.55,
+        "blade_power_plus": 1.3,
+        "equalizer2d": 1.05,
+        "melt": 0.8,
+        "concentric": 1.15
+      },
+      "palette_bias": {
+        "grime_voltage": 1.6,
+        "subzero": 1.1,
+        "magenta_oil": 1.05,
+        "warehouse_red": 0.95,
+        "acid_current": 0.9
+      }
+    },
+    "jungle": {
+      "name": "Jungle",
+      "base_style": "drum_and_bass",
+      "description": "Break-heavy and rolling: favors bass, roll, transition, drop and finale scenes with greener pressure palettes.",
+      "defaults": {
+        "count": 32,
+        "energy": 0.74,
+        "variation": 0.72,
+        "brightness": 0.82,
+        "movement": 0.82,
+        "audio_response": 0.76,
+        "density": 0.58,
+        "flash": 0.5,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.45,
+        "dark": 0.65,
+        "intro": 0.35,
+        "warmup": 0.8,
+        "breakdown": 0.7,
+        "groove": 1.0,
+        "energy": 1.15,
+        "bass": 1.35,
+        "roll": 1.55,
+        "build": 1.05,
+        "tension": 1.0,
+        "transition": 1.25,
+        "drop": 1.25,
+        "peak": 1.05,
+        "finale": 1.2,
+        "strobe": 0.7
+      },
+      "effect_bias": {
+        "scroll": 1.35,
+        "energy": 1.05,
+        "rain": 1.1,
+        "bar": 1.0,
+        "multiBar": 1.3,
+        "strobe": 0.75,
+        "real_strobe": 0.85,
+        "gradient": 0.6,
+        "singleColor": 0.4,
+        "blade_power_plus": 1.15,
+        "equalizer2d": 1.1,
+        "melt": 0.65,
+        "concentric": 1.05
+      },
+      "palette_bias": {
+        "jungle_pressure": 1.7,
+        "emerald_smoke": 1.25,
+        "petrol_lime": 1.1,
+        "subzero": 0.85,
+        "thermal_rave": 0.75
+      }
+    },
+    "breakbeat": {
+      "name": "Breakbeat",
+      "base_style": "drum_and_bass",
+      "description": "Percussive and syncopated: favors groove, roll, transition and drop scenes with punchy but less constant peak pressure.",
+      "defaults": {
+        "count": 28,
+        "energy": 0.66,
+        "variation": 0.7,
+        "brightness": 0.8,
+        "movement": 0.72,
+        "audio_response": 0.68,
+        "density": 0.56,
+        "flash": 0.44,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.5,
+        "dark": 0.65,
+        "intro": 0.55,
+        "warmup": 0.95,
+        "breakdown": 0.85,
+        "groove": 1.35,
+        "energy": 1.1,
+        "bass": 1.15,
+        "roll": 1.35,
+        "build": 0.95,
+        "tension": 0.9,
+        "transition": 1.25,
+        "drop": 1.05,
+        "peak": 0.8,
+        "finale": 0.85,
+        "strobe": 0.55
+      },
+      "effect_bias": {
+        "scroll": 1.25,
+        "energy": 0.95,
+        "rain": 0.9,
+        "bar": 1.25,
+        "multiBar": 1.2,
+        "strobe": 0.65,
+        "real_strobe": 0.7,
+        "gradient": 0.75,
+        "singleColor": 0.55,
+        "blade_power_plus": 1.05,
+        "equalizer2d": 1.2,
+        "melt": 0.7,
+        "concentric": 0.95
+      },
+      "palette_bias": {
+        "icebreak": 1.2,
+        "petrol_lime": 1.1,
+        "infra_rhythm": 0.95,
+        "subzero": 0.95,
+        "cyan_afterhours": 0.85
+      }
+    },
+    "uk_garage": {
+      "name": "UK Garage",
+      "base_style": "house",
+      "description": "Swingy, clipped and bouncy: favors groove, warmup, bass and transition scenes with quick movement and tasteful flash.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.58,
+        "variation": 0.6,
+        "brightness": 0.8,
+        "movement": 0.62,
+        "audio_response": 0.64,
+        "density": 0.52,
+        "flash": 0.34,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.6,
+        "dark": 0.5,
+        "intro": 0.75,
+        "warmup": 1.15,
+        "breakdown": 0.75,
+        "groove": 1.45,
+        "energy": 1.05,
+        "bass": 1.15,
+        "roll": 1.1,
+        "build": 0.85,
+        "tension": 0.75,
+        "transition": 1.05,
+        "drop": 0.8,
+        "peak": 0.6,
+        "finale": 0.65,
+        "strobe": 0.35
+      },
+      "effect_bias": {
+        "scroll": 1.2,
+        "energy": 0.95,
+        "rain": 0.95,
+        "bar": 1.3,
+        "multiBar": 1.15,
+        "strobe": 0.35,
+        "real_strobe": 0.45,
+        "gradient": 0.95,
+        "singleColor": 0.8,
+        "blade_power_plus": 0.85,
+        "equalizer2d": 1.0,
+        "melt": 0.85,
+        "concentric": 0.65
+      },
+      "palette_bias": {
+        "warm_room": 1.25,
+        "rose_circuit": 1.1,
+        "cyan_afterhours": 0.95,
+        "amber_dust": 0.9,
+        "magenta_oil": 0.85
+      }
+    },
+    "electro": {
+      "name": "Electro",
+      "base_style": "techno",
+      "description": "Robot funk and sharp motion: favors groove, bass, transition and drop scenes with cold neon palettes.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.62,
+        "variation": 0.64,
+        "brightness": 0.76,
+        "movement": 0.7,
+        "audio_response": 0.6,
+        "density": 0.48,
+        "flash": 0.38,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.55,
+        "dark": 0.85,
+        "intro": 0.65,
+        "warmup": 0.85,
+        "breakdown": 0.7,
+        "groove": 1.3,
+        "energy": 1.05,
+        "bass": 1.2,
+        "roll": 1.05,
+        "build": 0.9,
+        "tension": 1.0,
+        "transition": 1.15,
+        "drop": 1.0,
+        "peak": 0.85,
+        "finale": 0.8,
+        "strobe": 0.6
+      },
+      "effect_bias": {
+        "scroll": 1.25,
+        "energy": 0.95,
+        "rain": 0.65,
+        "bar": 1.2,
+        "multiBar": 1.15,
+        "strobe": 0.75,
+        "real_strobe": 0.75,
+        "gradient": 0.7,
+        "singleColor": 0.65,
+        "blade_power_plus": 1.2,
+        "equalizer2d": 1.15,
+        "melt": 0.55,
+        "concentric": 1.05
+      },
+      "palette_bias": {
+        "subzero": 1.25,
+        "ultraviolet_sub": 1.2,
+        "cyan_afterhours": 1.1,
+        "grime_voltage": 0.9,
+        "steel_pulse": 0.85
+      }
+    },
+    "trance": {
+      "name": "Trance",
+      "base_style": "techno",
+      "description": "Long-motion and euphoric: favors build, energy, peak and finale scenes with rolling gradients and bright accents.",
+      "defaults": {
+        "count": 28,
+        "energy": 0.68,
+        "variation": 0.62,
+        "brightness": 0.86,
+        "movement": 0.66,
+        "audio_response": 0.58,
+        "density": 0.62,
+        "flash": 0.42,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.65,
+        "dark": 0.45,
+        "intro": 0.75,
+        "warmup": 0.95,
+        "breakdown": 0.85,
+        "groove": 1.0,
+        "energy": 1.25,
+        "bass": 0.85,
+        "roll": 1.0,
+        "build": 1.35,
+        "tension": 1.15,
+        "transition": 1.1,
+        "drop": 1.05,
+        "peak": 1.25,
+        "finale": 1.2,
+        "strobe": 0.55
+      },
+      "effect_bias": {
+        "scroll": 1.0,
+        "energy": 1.25,
+        "rain": 0.95,
+        "bar": 0.9,
+        "multiBar": 1.0,
+        "strobe": 0.65,
+        "real_strobe": 0.6,
+        "gradient": 1.25,
+        "singleColor": 0.65,
+        "blade_power_plus": 0.95,
+        "equalizer2d": 0.8,
+        "melt": 1.05,
+        "concentric": 1.15
+      },
+      "palette_bias": {
+        "violet_fault": 1.25,
+        "rose_circuit": 1.15,
+        "subzero": 1.05,
+        "icebreak": 1.0,
+        "golden_pressure": 0.95
+      }
+    },
+    "industrial": {
+      "name": "Industrial",
+      "base_style": "techno",
+      "description": "Hard-edged and mechanical: favors dark, tension, transition, drop, peak and strobe scenes with metallic or red palettes.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.72,
+        "variation": 0.58,
+        "brightness": 0.7,
+        "movement": 0.6,
+        "audio_response": 0.62,
+        "density": 0.46,
+        "flash": 0.62,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.35,
+        "dark": 1.25,
+        "intro": 0.45,
+        "warmup": 0.65,
+        "breakdown": 0.8,
+        "groove": 0.9,
+        "energy": 1.0,
+        "bass": 1.1,
+        "roll": 0.9,
+        "build": 1.05,
+        "tension": 1.4,
+        "transition": 1.2,
+        "drop": 1.25,
+        "peak": 1.15,
+        "finale": 0.95,
+        "strobe": 1.2
+      },
+      "effect_bias": {
+        "scroll": 0.85,
+        "energy": 1.0,
+        "rain": 0.45,
+        "bar": 1.0,
+        "multiBar": 1.05,
+        "strobe": 1.25,
+        "real_strobe": 1.25,
+        "gradient": 0.45,
+        "singleColor": 0.7,
+        "blade_power_plus": 1.35,
+        "equalizer2d": 1.0,
+        "melt": 0.55,
+        "concentric": 1.2
+      },
+      "palette_bias": {
+        "steel_pulse": 1.35,
+        "warehouse_red": 1.25,
+        "infra_rhythm": 1.1,
+        "mono_flash": 1.0,
+        "subzero": 0.75
+      }
+    },
+    "dubstep": {
+      "name": "Dubstep",
+      "base_style": "grime",
+      "description": "Heavy low-end and stop-start impact: favors bass, tension, drop, peak and strobe scenes with aggressive contrast.",
+      "defaults": {
+        "count": 24,
+        "energy": 0.74,
+        "variation": 0.7,
+        "brightness": 0.8,
+        "movement": 0.6,
+        "audio_response": 0.78,
+        "density": 0.54,
+        "flash": 0.66,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.35,
+        "dark": 0.9,
+        "intro": 0.5,
+        "warmup": 0.6,
+        "breakdown": 0.95,
+        "groove": 0.75,
+        "energy": 1.0,
+        "bass": 1.55,
+        "roll": 0.95,
+        "build": 1.05,
+        "tension": 1.35,
+        "transition": 1.15,
+        "drop": 1.5,
+        "peak": 1.25,
+        "finale": 1.0,
+        "strobe": 1.05
+      },
+      "effect_bias": {
+        "scroll": 0.8,
+        "energy": 1.1,
+        "rain": 0.5,
+        "bar": 1.15,
+        "multiBar": 1.2,
+        "strobe": 1.15,
+        "real_strobe": 1.25,
+        "gradient": 0.45,
+        "singleColor": 0.5,
+        "blade_power_plus": 1.35,
+        "equalizer2d": 1.1,
+        "melt": 0.75,
+        "concentric": 1.3
+      },
+      "palette_bias": {
+        "ultraviolet_sub": 1.35,
+        "grime_voltage": 1.25,
+        "subzero": 1.0,
+        "infra_rhythm": 0.95,
+        "mono_flash": 0.85
+      }
+    },
+    "minimal": {
+      "name": "Minimal",
+      "base_style": "techno",
+      "description": "Sparse and controlled: favors dark, groove, warmup and breakdown scenes with fewer dense layers and very selective flash.",
+      "defaults": {
+        "count": 20,
+        "energy": 0.46,
+        "variation": 0.42,
+        "brightness": 0.64,
+        "movement": 0.42,
+        "audio_response": 0.52,
+        "density": 0.32,
+        "flash": 0.18,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 0.9,
+        "dark": 1.25,
+        "intro": 1.0,
+        "warmup": 1.15,
+        "breakdown": 1.2,
+        "groove": 1.25,
+        "energy": 0.65,
+        "bass": 0.75,
+        "roll": 0.7,
+        "build": 0.55,
+        "tension": 0.7,
+        "transition": 0.65,
+        "drop": 0.4,
+        "peak": 0.25,
+        "finale": 0.3,
+        "strobe": 0.15
+      },
+      "effect_bias": {
+        "scroll": 0.85,
+        "energy": 0.65,
+        "rain": 0.85,
+        "bar": 0.95,
+        "multiBar": 0.65,
+        "strobe": 0.15,
+        "real_strobe": 0.15,
+        "gradient": 1.15,
+        "singleColor": 1.2,
+        "blade_power_plus": 0.65,
+        "equalizer2d": 0.8,
+        "melt": 1.0,
+        "concentric": 0.55
+      },
+      "palette_bias": {
+        "steel_pulse": 1.25,
+        "cyan_afterhours": 1.0,
+        "dub_depth": 0.9,
+        "mono_flash": 0.85,
+        "acid_current": 0.75
+      }
+    },
+    "ambient_downtempo": {
+      "name": "Ambient / Downtempo",
+      "base_style": "dub",
+      "description": "Slow, spacious and low pressure: favors ambient, intro, dark and breakdown scenes with very low flash.",
+      "defaults": {
+        "count": 16,
+        "energy": 0.26,
+        "variation": 0.5,
+        "brightness": 0.52,
+        "movement": 0.3,
+        "audio_response": 0.44,
+        "density": 0.3,
+        "flash": 0.08,
+        "layout": "auto"
+      },
+      "scene_type_weights": {
+        "ambient": 1.5,
+        "dark": 1.2,
+        "intro": 1.3,
+        "warmup": 0.85,
+        "breakdown": 1.25,
+        "groove": 0.45,
+        "energy": 0.25,
+        "bass": 0.55,
+        "roll": 0.25,
+        "build": 0.3,
+        "tension": 0.35,
+        "transition": 0.25,
+        "drop": 0.15,
+        "peak": 0.1,
+        "finale": 0.15,
+        "strobe": 0.05
+      },
+      "effect_bias": {
+        "scroll": 0.45,
+        "energy": 0.45,
+        "rain": 1.1,
+        "bar": 0.35,
+        "multiBar": 0.25,
+        "strobe": 0.05,
+        "real_strobe": 0.05,
+        "gradient": 1.55,
+        "singleColor": 1.25,
+        "blade_power_plus": 0.35,
+        "equalizer2d": 0.5,
+        "melt": 1.45,
+        "concentric": 0.45
+      },
+      "palette_bias": {
+        "dub_depth": 1.25,
+        "emerald_smoke": 1.15,
+        "cyan_afterhours": 1.05,
+        "steel_pulse": 1.0,
+        "violet_fault": 0.75
+      }
+    }
+  }
+}

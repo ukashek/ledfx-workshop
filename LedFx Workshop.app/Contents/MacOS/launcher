@@ -1,0 +1,4 @@
+#!/bin/zsh
+APP_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
+PROJECT_DIR="$(CDPATH= cd -- "$APP_DIR/.." && pwd -P)"
+exec "$PROJECT_DIR/scripts/launch_workshop.sh"
