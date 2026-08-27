@@ -129,6 +129,10 @@ def main() -> None:
     assert all(scene.assignments for scene in scenes)
     assert all(scene.to_ledfx_payload()["virtuals"] for scene in scenes)
     for scene in scenes:
+        for entry in scene.to_ledfx_payload()["virtuals"].values():
+            assert "preset" not in entry
+            assert "preset_category" not in entry
+    for scene in scenes:
         assert any(tag.startswith("palette-") for tag in scene.tags)
         for assignment in scene.assignments:
             assert profiles["effects"]["effects"][assignment.effect_type]["audio_reactive"] is True
@@ -213,6 +217,54 @@ def main() -> None:
     )
     assert gradient_config["gradient"] == acid["gradient"]
     assert gradient_config["gradient_name"] == acid["name"]
+    subzero = next(palette for palette in profiles["palettes"]["palettes"] if palette["id"] == "subzero")
+    subzero_config = ParameterRandomizer().build_config(
+        choice={
+            "effect_type": "multiBar",
+            "profile": {
+                "safe_params": {},
+                "palette_keys": {
+                    "gradient": "gradient",
+                    "background_color": "background",
+                    "color": "mid",
+                },
+            },
+            "preset_id": "warm-rainbow",
+        },
+        palette=subzero,
+        energy=0.75,
+        schema_effects={
+            "multiBar": {
+                "schema": {
+                    "properties": {
+                        "brightness": {"type": "number", "minimum": 0, "maximum": 1, "default": 1},
+                        "gradient_roll": {"type": "number", "minimum": 0, "maximum": 10, "default": 0},
+                    }
+                }
+            }
+        },
+        ledfx_presets={
+            "multiBar": {
+                "warm-rainbow": {
+                    "config": {
+                        "brightness": 1,
+                        "gradient": "linear-gradient(90deg, #000000 0%, #ff5400 50%, #ff0000 100%)",
+                        "gradient_name": "Rainbow",
+                        "background_color": "#ffffff",
+                        "color": "#ff0000",
+                        "gradient_roll": 5,
+                    }
+                }
+            }
+        },
+        rng=random.Random("subzero-overwrites-warm-preset"),
+        variation=0.5,
+    )
+    assert subzero_config["gradient"] == subzero["gradient"]
+    assert subzero_config["gradient_name"] == subzero["name"]
+    assert subzero_config["background_color"] == subzero["colors"]["background"]
+    assert subzero_config["color"] == subzero["colors"]["mid"]
+    assert subzero_config["gradient_roll"] == 5
     non_sound = generator.generate_batch(
         {
             "count": 2,

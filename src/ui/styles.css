@@ -4099,12 +4099,15 @@ legend {
   position: fixed;
   right: 18px;
   bottom: 18px;
-  max-width: min(420px, calc(100vw - 36px));
+  z-index: 90;
+  max-width: min(720px, calc(100vw - 36px));
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #0f1318;
   color: var(--text);
+  line-height: 1.35;
+  white-space: pre-line;
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 160ms ease, transform 160ms ease;

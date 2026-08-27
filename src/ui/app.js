@@ -1208,11 +1208,27 @@ async function api(path, options = {}) {
   return data;
 }
 
-function showToast(message) {
+function showToast(message, timeout = 3600) {
   els.toast.textContent = message;
   els.toast.classList.add("show");
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 3600);
+  showToast.timer = setTimeout(() => els.toast.classList.remove("show"), timeout);
+}
+
+function formatLedFxWarnings(report, limit = 4) {
+  const warnings = (report && Array.isArray(report.warnings) ? report.warnings : [])
+    .filter((warning) => warning && warning.message);
+  if (!warnings.length) return "";
+  const visible = warnings.slice(0, limit).map((warning) => {
+    const scene = warning.scene ? `${warning.scene}: ` : "";
+    const field = warning.field ? `[${warning.field}] ` : "";
+    return `${scene}${field}${warning.message}`;
+  });
+  const remaining = warnings.length - visible.length;
+  if (remaining > 0) {
+    visible.push(`...and ${remaining} more warning(s).`);
+  }
+  return visible.join("\n");
 }
 
 function option(label, value) {
@@ -4921,15 +4937,42 @@ function stabilizeLibraryScenes(nextScenes) {
   return incoming;
 }
 
+function playlistItemSceneId(item) {
+  if (item && typeof item === "object") {
+    return String(item.scene_id || item.id || item.scene || "").trim();
+  }
+  return String(item || "").trim();
+}
+
+function normalizeLibraryPlaylists(playlists, availableSceneIds) {
+  const available = availableSceneIds instanceof Set ? availableSceneIds : new Set();
+  return (Array.isArray(playlists) ? playlists : []).map((playlist) => {
+    const rawItems = Array.isArray(playlist.items) ? playlist.items : [];
+    const items = rawItems.filter((item) => available.has(playlistItemSceneId(item)));
+    return {
+      ...playlist,
+      items,
+      item_count: items.length,
+      raw_item_count: Number.isFinite(Number(playlist.raw_item_count))
+        ? Number(playlist.raw_item_count)
+        : rawItems.length,
+      missing_item_count: Number.isFinite(Number(playlist.missing_item_count))
+        ? Number(playlist.missing_item_count)
+        : Math.max(0, rawItems.length - items.length),
+    };
+  });
+}
+
 async function loadLedFxLibrary(toastOnSuccess = true) {
   try {
     const data = await api("/api/ledfx-library");
+    const scenes = stabilizeLibraryScenes(data.scenes || []);
+    const available = new Set(scenes.map((scene) => scene.id));
     state.ledfxLibrary = {
-      scenes: stabilizeLibraryScenes(data.scenes || []),
-      playlists: data.playlists || [],
+      scenes,
+      playlists: normalizeLibraryPlaylists(data.playlists || [], available),
       playlist_state: data.playlist_state || {},
     };
-    const available = new Set(state.ledfxLibrary.scenes.map((scene) => scene.id));
     state.playlistSceneIds = new Set(
       [...state.playlistSceneIds].filter((sceneId) => available.has(sceneId)),
     );
@@ -5283,9 +5326,11 @@ function activePlaylist() {
 }
 
 function playlistSceneIds(playlist) {
-  return (playlist && Array.isArray(playlist.items) ? playlist.items : [])
-    .map((item) => String(item.scene_id || item.id || item.scene || "").trim())
+  const ids = (playlist && Array.isArray(playlist.items) ? playlist.items : [])
+    .map((item) => playlistItemSceneId(item))
     .filter(Boolean);
+  const available = new Set((state.ledfxLibrary.scenes || []).map((scene) => scene.id));
+  return available.size ? ids.filter((sceneId) => available.has(sceneId)) : ids;
 }
 
 function sceneForId(sceneId) {
@@ -5734,7 +5779,7 @@ function loadPlaylistIntoEditor(playlist) {
   els.playlistNameInput.value = playlist.name;
   els.playlistModeSelect.value = playlist.mode || "sequence";
   els.playlistDurationInput.value = formatSeconds((playlist.default_duration_ms || 30000) / 1000);
-  state.playlistSceneIds = new Set((playlist.items || []).map((item) => item.scene_id));
+  state.playlistSceneIds = new Set(playlistSceneIds(playlist));
   openPlaylistEditor("Edit Playlist");
 }
 
@@ -11449,26 +11494,27 @@ function renderSimilarityReport() {
   }
   host.append(summary);
 
+  const details = document.createElement("details");
+  details.className = "similarity-details";
+  const title = document.createElement("summary");
+  title.textContent = "Scene Diff details";
+  details.append(title);
+
   const intro = document.createElement("p");
   intro.className = "similarity-intro";
   intro.textContent =
     "Scene Diff compares scene type, layout, palette/gradient, effects, presets, target Devices and key parameter values. Higher overlap means those scenes may feel too similar inside one batch.";
-  host.append(intro);
+  details.append(intro);
 
   const pairs = (report.pairs || []).filter((pair) => Number(pair.score || 0) >= 0.34).slice(0, 4);
   if (!pairs.length) {
     const note = document.createElement("p");
     note.className = "similarity-recommendation";
     note.textContent = report.recommendation || "The batch looks varied enough for now.";
-    host.append(note);
+    details.append(note);
+    host.append(details);
     return;
   }
-  const details = document.createElement("details");
-  details.className = "similarity-details";
-  details.open = risk !== "low";
-  const title = document.createElement("summary");
-  title.textContent = "Most similar scenes";
-  details.append(title);
   pairs.forEach((pair) => {
     const row = document.createElement("div");
     row.className = "similarity-pair";
@@ -11490,8 +11536,9 @@ function renderSimilarityReport() {
     const recommendation = document.createElement("p");
     recommendation.className = "similarity-recommendation";
     recommendation.textContent = report.recommendation;
-    host.append(recommendation);
+    details.append(recommendation);
   }
+  host.append(details);
 }
 
 function metricPill(label, value) {
@@ -12886,11 +12933,17 @@ async function saveBatch() {
       throw new Error(first ? `LedFx safety check failed: ${first.message}` : "LedFx safety check failed.");
     }
     if (safety.warning_count) {
+      const warningDetails = formatLedFxWarnings(safety, 6);
       const ok = window.confirm(
-        `LedFx safety check found ${safety.warning_count} warning(s). Send approved scenes anyway?`,
+        [
+          `LedFx safety check found ${safety.warning_count} warning(s):`,
+          warningDetails,
+          "",
+          "Send approved scenes anyway?",
+        ].filter(Boolean).join("\n"),
       );
       if (!ok) {
-        showToast("Send cancelled after safety check.");
+        showToast(`Send cancelled after safety warning:\n${warningDetails}`, 9000);
         return;
       }
     }
@@ -12915,10 +12968,11 @@ async function saveBatch() {
     const errorText = data.errors && data.errors.length ? `, ${data.errors.length} failed${firstError}` : "";
     const presetErrors = (data.preset_errors || []).length;
     const presetText = presetErrors ? `, ${presetErrors} preset errors` : "";
-    const safetyWarnings = data.safety_report && data.safety_report.warning_count
-      ? `, ${data.safety_report.warning_count} warnings`
+    const safetyWarningDetails = formatLedFxWarnings(data.safety_report, 3);
+    const safetyWarnings = safetyWarningDetails
+      ? `\nWarnings:\n${safetyWarningDetails}`
       : "";
-    showToast(`Sent ${savedIds.size} scenes${presetText}${safetyWarnings}${errorText}.`);
+    showToast(`Sent ${savedIds.size} scenes${presetText}${errorText}.${safetyWarnings}`, safetyWarningDetails ? 10000 : 3600);
   } catch (error) {
     showToast(error.message);
   } finally {

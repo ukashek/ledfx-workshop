@@ -147,32 +147,73 @@ class ParameterRandomizer:
         palette: Dict[str, Any],
     ) -> None:
         gradient_applied = False
+        palette_gradient = PaletteEngine.gradient(palette)
+        palette_name = PaletteEngine.gradient_name(palette)
         for key, role in profile.get("palette_keys", {}).items():
-            if key not in properties and key not in config:
-                continue
             if role == "gradient":
-                config[key] = PaletteEngine.gradient(palette)
+                config[key] = palette_gradient
                 gradient_applied = True
             else:
                 config[key] = PaletteEngine.color(palette, role)
+        for key, value in list(config.items()):
+            lower_key = key.lower()
+            if lower_key == "gradient_name":
+                continue
+            if self._is_existing_gradient_field(lower_key, value):
+                config[key] = palette_gradient
+                gradient_applied = True
+                continue
+            if isinstance(value, str) and self._looks_like_hex_color(value):
+                role = self._role_for_color_key(lower_key)
+                if role:
+                    config[key] = PaletteEngine.color(palette, role)
         for key, prop in properties.items():
             if prop.get("type") != "color":
                 continue
             if prop.get("gradient"):
                 if key in config or key == "gradient":
-                    config[key] = PaletteEngine.gradient(palette)
+                    config[key] = palette_gradient
                     gradient_applied = True
             elif key not in config:
                 continue
-            elif key == "background_color":
-                config[key] = PaletteEngine.color(palette, "background")
-            elif "low" in key or "lows" in key:
-                config[key] = PaletteEngine.color(palette, "low")
-            elif "mid" in key or "mids" in key:
-                config[key] = PaletteEngine.color(palette, "mid")
-            elif "high" in key:
-                config[key] = PaletteEngine.color(palette, "high")
-            elif "strobe" in key:
-                config[key] = PaletteEngine.color(palette, "strobe")
-        if gradient_applied and ("gradient_name" in config or "gradient_name" in properties):
-            config["gradient_name"] = PaletteEngine.gradient_name(palette)
+            else:
+                role = self._role_for_color_key(key.lower())
+                if role:
+                    config[key] = PaletteEngine.color(palette, role)
+        if gradient_applied:
+            config["gradient_name"] = palette_name
+
+    @staticmethod
+    def _looks_like_hex_color(value: str) -> bool:
+        clean = value.strip()
+        if not clean.startswith("#") or len(clean) not in (4, 7, 9):
+            return False
+        try:
+            int(clean[1:], 16)
+        except ValueError:
+            return False
+        return True
+
+    @staticmethod
+    def _is_existing_gradient_field(key: str, value: Any) -> bool:
+        if key in {"gradient", "color_gradient"}:
+            return True
+        return "gradient" in key and isinstance(value, str) and "linear-gradient" in value
+
+    @staticmethod
+    def _role_for_color_key(key: str) -> Optional[str]:
+        if "background" in key or key in {"bg", "bg_color"}:
+            return "background"
+        if "strobe" in key or "flash" in key:
+            return "strobe"
+        if "low" in key or "lows" in key or "bass" in key:
+            return "low"
+        if "mid" in key or "mids" in key:
+            return "mid"
+        if "high" in key or "treble" in key:
+            return "high"
+        if "accent" in key:
+            return "accent"
+        if key in {"color", "colour", "single_color"}:
+            return "mid"
+        return None

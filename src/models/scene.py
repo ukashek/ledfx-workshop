@@ -24,10 +24,12 @@ class VirtualAssignment:
             "type": self.effect_type,
             "config": self.config,
         }
-        if self.preset:
+        # Generated scenes store the concrete config. Keeping a preset reference
+        # can make LedFx reactivate stale preset colors instead of this config.
+        if self.preset and not self.config:
             entry["preset"] = self.preset
-        if self.preset_category:
-            entry["preset_category"] = self.preset_category
+            if self.preset_category:
+                entry["preset_category"] = self.preset_category
         return entry
 
     def to_effect_payload(self) -> Dict[str, Any]:

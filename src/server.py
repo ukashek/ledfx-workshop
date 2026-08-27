@@ -17,7 +17,7 @@ import time
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import parse_qs, urlparse
 
 from src.api.ledfx_client import LedFxApiError, LedFxClient
@@ -42,6 +42,20 @@ MAX_GENERATE_COUNT = 250
 MAX_SCENE_NAME = 48
 MAX_EFFECT_DRAFT_CHARS = 240_000
 VALID_SCENE_ACTIONS = {"activate", "ignore"}
+SAFETY_GENERATED_CONFIG_KEYS = {
+    "background_color",
+    "bg_color",
+    "color",
+    "color_lows",
+    "color_mids",
+    "color_high",
+    "gradient",
+    "gradient_name",
+    "gradient_repeat",
+    "single_color",
+    "solid_color",
+    "strobe_color",
+}
 DEFAULT_STYLE_PARAMS = {
     "count": 24,
     "energy": 0.65,
@@ -852,13 +866,17 @@ class AppState:
             if old_id not in self.generated or self.generated[old_id].deleted:
                 continue
             old_scene = self.generated[old_id]
+            scene_options = dict(base_options)
+            if old_scene.palette_id and old_scene.palette_id != "auto":
+                scene_options["palette_id"] = old_scene.palette_id
+                scene_options["palette_ids"] = [old_scene.palette_id]
             existing = [
                 self.generated[sid]
                 for sid in self.order
                 if sid in self.generated and sid != old_id and not self.generated[sid].deleted
             ]
-            base_options["existing_scenes"] = existing
-            replacement = generator.generate_batch(self._normalize_options(base_options))[0]
+            scene_options["existing_scenes"] = existing
+            replacement = generator.generate_batch(self._normalize_options(scene_options))[0]
             replacement.kept = old_scene.kept
             old_index = self.order.index(old_id) if old_id in self.order else len(self.order)
             old_scene.deleted = True
@@ -952,10 +970,15 @@ class AppState:
                     .get("properties", {})
                 )
                 if isinstance(properties, dict) and properties:
+                    allowed_keys = self._safety_allowed_config_keys(
+                        config,
+                        schema_effects,
+                        assignment,
+                    )
                     unknown = sorted(
                         key
                         for key in (assignment.config or {}).keys()
-                        if key not in properties
+                        if key not in properties and key not in allowed_keys
                     )
                     if unknown:
                         warnings.append(
@@ -988,6 +1011,30 @@ class AppState:
             "errors": errors,
             "warnings": warnings,
         }
+
+    def _safety_allowed_config_keys(
+        self,
+        ledfx_config: Dict[str, Any],
+        schema_effects: Dict[str, Any],
+        assignment: VirtualAssignment,
+    ) -> Set[str]:
+        profile = self._effect_profile(assignment.effect_type, schema_effects)
+        allowed = set(SAFETY_GENERATED_CONFIG_KEYS)
+        allowed.update((profile.get("safe_params") or {}).keys())
+        allowed.update((profile.get("palette_keys") or {}).keys())
+        for preset_id, category in (
+            (assignment.preset, assignment.preset_category),
+            (assignment.source_preset_id, assignment.source_preset_category),
+        ):
+            preset = self._preset_details(
+                ledfx_config,
+                assignment.effect_type,
+                str(preset_id or ""),
+                str(category or "") or None,
+            )
+            if preset and isinstance(preset.get("config"), dict):
+                allowed.update(preset["config"].keys())
+        return allowed
 
     def generate_presets(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         schema = self.client.get_schema()
@@ -1318,44 +1365,40 @@ class AppState:
         mode = options.get("preset_mode")
         if mode not in ("mixed", "generate"):
             return []
-        assignments = [
-            assignment
-            for scene in scenes
-            for assignment in scene.assignments
-            if (
-                assignment.effect_type
-                and assignment.action != "ignore"
-                and not (assignment.preset and assignment.preset_category == "user_presets")
-            )
-        ]
-        if not assignments:
-            return []
-        virtual_ids = self._ordered_unique_ids([assignment.virtual_id for assignment in assignments])
-        snapshot = self.client.snapshot_effects(virtual_ids)
         errors: List[Dict[str, str]] = []
-        try:
-            for scene in scenes:
-                for assignment in scene.assignments:
-                    if not assignment.effect_type or assignment.action == "ignore":
-                        continue
-                    if mode == "mixed" and not self._should_create_scene_preset(scene, assignment):
-                        continue
-                    preset_name = self._scene_preset_name(scene, assignment)
-                    try:
-                        self.client.set_virtual_effect(assignment)
-                        response = self.client.save_active_effect_as_preset(assignment.virtual_id, preset_name)
-                        preset = self._extract_preset(response)
-                        assignment.preset = str(preset.get("id") or self._slug(preset_name))
-                        assignment.preset_category = "user_presets"
-                        if isinstance(preset.get("config"), dict):
-                            assignment.config = copy.deepcopy(preset["config"])
-                    except Exception as exc:
-                        errors.append({"scene": scene.name, "effect": assignment.effect_type, "error": str(exc)})
-        finally:
+        config = self.client.get_config()
+        user_presets = copy.deepcopy(config.get("user_presets") or {})
+        changed = False
+        for scene in scenes:
+            for assignment in scene.assignments:
+                if not assignment.effect_type or assignment.action == "ignore":
+                    continue
+                if assignment.preset and assignment.preset_category == "user_presets":
+                    continue
+                if mode == "mixed" and not self._should_create_scene_preset(scene, assignment):
+                    continue
+                preset_name = self._scene_preset_name(scene, assignment)
+                preset_id = self._ledfx_preset_id(preset_name)
+                if not preset_id:
+                    errors.append({"scene": scene.name, "effect": assignment.effect_type, "error": "Could not build preset id."})
+                    continue
+                effect_presets = user_presets.setdefault(assignment.effect_type, {})
+                effect_presets[preset_id] = {
+                    "name": preset_name,
+                    "config": copy.deepcopy(assignment.config),
+                }
+                assignment.preset = preset_id
+                assignment.preset_category = "user_presets"
+                assignment.source_preset_id = preset_id
+                assignment.source_preset_name = preset_name
+                assignment.source_preset_category = "user_presets"
+                changed = True
+        if changed:
+            config["user_presets"] = user_presets
             try:
-                self.client.restore_snapshot(snapshot)
+                self.client.update_config(config)
             except Exception as exc:
-                errors.append({"scene": "restore", "effect": "", "error": str(exc)})
+                errors.append({"scene": "preset save", "effect": "", "error": str(exc)})
         return errors
 
     @staticmethod
@@ -1746,8 +1789,9 @@ class AppState:
                 item["id"],
             )
         )
+        known_scene_ids = {str(scene_id) for scene_id in (scenes_response.get("scenes") or {}).keys()}
         playlist_rows = [
-            self._public_playlist(playlist_id, playlist)
+            self._public_playlist(playlist_id, playlist, known_scene_ids)
             for playlist_id, playlist in (playlists_response.get("playlists") or {}).items()
         ]
         playlist_rows.sort(key=lambda item: (item["name"].lower(), item["id"]))
@@ -1879,6 +1923,7 @@ class AppState:
                 virtuals[target_virtual_id] = current_virtual
             self._sync_virtual_ignore_entries(virtuals, known_virtual_order)
             scene_config["virtuals"] = virtuals
+        self._strip_scene_preset_refs(scene_config)
         response = self.client.save_scene_payload(scene_config)
         return {
             "scene": self._public_ledfx_scene(scene_id, scene_config, known_virtual_order),
@@ -2148,8 +2193,26 @@ class AppState:
         }
 
     @staticmethod
-    def _public_playlist(playlist_id: str, playlist: Dict[str, Any]) -> Dict[str, Any]:
-        items = list(playlist.get("items") or [])
+    def _playlist_item_scene_id(item: Any) -> str:
+        if isinstance(item, dict):
+            return str(item.get("scene_id") or item.get("id") or item.get("scene") or "").strip()
+        return str(item or "").strip()
+
+    @staticmethod
+    def _public_playlist(
+        playlist_id: str,
+        playlist: Dict[str, Any],
+        known_scene_ids: Optional[Set[str]] = None,
+    ) -> Dict[str, Any]:
+        raw_items = list(playlist.get("items") or [])
+        if known_scene_ids is None:
+            items = raw_items
+        else:
+            items = [
+                item
+                for item in raw_items
+                if AppState._playlist_item_scene_id(item) in known_scene_ids
+            ]
         return {
             "id": str(playlist.get("id") or playlist_id),
             "name": str(playlist.get("name") or playlist_id),
@@ -2157,6 +2220,8 @@ class AppState:
             "default_duration_ms": int(playlist.get("default_duration_ms") or 500),
             "items": items,
             "item_count": len(items),
+            "raw_item_count": len(raw_items),
+            "missing_item_count": max(0, len(raw_items) - len(items)),
             "tags": playlist.get("tags") or [],
             "image": playlist.get("image"),
         }
@@ -2988,6 +3053,19 @@ class AppState:
         for virtual_id in ordered_virtuals:
             if virtual_id not in effect_targets:
                 virtuals[virtual_id] = {"action": "ignore"}
+
+    @staticmethod
+    def _strip_scene_preset_refs(scene_config: Dict[str, Any]) -> None:
+        virtuals = scene_config.get("virtuals") or {}
+        if not isinstance(virtuals, dict):
+            return
+        for virtual in virtuals.values():
+            if not isinstance(virtual, dict):
+                continue
+            config = virtual.get("config")
+            if isinstance(config, dict) and config:
+                virtual.pop("preset", None)
+                virtual.pop("preset_category", None)
 
     def _sanitize_config_update(
         self, current_config: Dict[str, Any], config_update: Dict[str, Any]
