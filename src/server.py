@@ -660,7 +660,11 @@ class AppState:
             self._validate_effect_type(effect_type, schema_effects)
             base_config = self._default_effect_config(effect_type, schema_effects)
             base_config.update(copy.deepcopy(config_data))
-            config_data = self._sanitize_config_update(base_config, config_data)
+            config_data = self._sanitize_config_update(
+                base_config,
+                config_data,
+                self._schema_properties(effect_type, schema_effects),
+            )
         item_id = str(item.get("id") or "").strip()
         if not item_id:
             token = f"{effect_type}:{name}:{json.dumps(config_data, sort_keys=True, default=str)}"
@@ -1186,7 +1190,11 @@ class AppState:
                         raise ValueError("config must be an object")
                     base_config = self._default_effect_config(effect_type, schema_effects)
                     base_config.update(copy.deepcopy(config_data))
-                    next_config = self._sanitize_config_update(base_config, config_data)
+                    next_config = self._sanitize_config_update(
+                        base_config,
+                        config_data,
+                        self._schema_properties(effect_type, schema_effects),
+                    )
                     self.client.set_virtual_effect(
                         VirtualAssignment(
                             virtual_id=virtual_id,
@@ -1277,7 +1285,11 @@ class AppState:
             raise ValueError("config must be an object")
         base_config = self._default_effect_config(effect_type, schema_effects)
         base_config.update(copy.deepcopy(preset["config"]))
-        next_config = self._sanitize_config_update(base_config, config_update)
+        next_config = self._sanitize_config_update(
+            base_config,
+            config_update,
+            self._schema_properties(effect_type, schema_effects),
+        )
 
         known_virtual_ids = list((self.client.get_virtuals().get("virtuals") or {}).keys())
         virtual_id = str(payload.get("virtual_id") or "").strip() or self._first_virtual_id(known_virtual_ids)
@@ -1333,7 +1345,11 @@ class AppState:
         base_config = self._default_effect_config(effect_type, schema_effects)
         if preset:
             base_config.update(copy.deepcopy(preset["config"]))
-        next_config = self._sanitize_config_update(base_config, config_update)
+        next_config = self._sanitize_config_update(
+            base_config,
+            config_update,
+            self._schema_properties(effect_type, schema_effects),
+        )
 
         if self.preview_snapshot:
             self.client.restore_snapshot(self.preview_snapshot)
@@ -1654,7 +1670,11 @@ class AppState:
                     assignment.source_preset_name = None
                     assignment.source_preset_category = None
                     changed = True
-            next_config = self._sanitize_config_update(assignment.config, config_update)
+            next_config = self._sanitize_config_update(
+                assignment.config,
+                config_update,
+                self._schema_properties(assignment.effect_type, schema_effects),
+            )
             if next_config != assignment.config:
                 assignment.config = next_config
                 changed = True
@@ -1901,6 +1921,10 @@ class AppState:
                     or not isinstance(current_config, dict)
                 ):
                     current_config = self._default_effect_config(effect_type, schema_effects)
+                else:
+                    base_config = self._default_effect_config(effect_type, schema_effects)
+                    base_config.update(current_config)
+                    current_config = base_config
                 current_virtual["action"] = action
                 current_virtual["type"] = effect_type
                 if current_virtual.get("preset") and old_effect_type != effect_type:
@@ -1917,7 +1941,11 @@ class AppState:
                 elif preset_requested:
                     current_virtual.pop("preset", None)
                     current_virtual.pop("preset_category", None)
-                current_virtual["config"] = self._sanitize_config_update(current_config, config_update)
+                current_virtual["config"] = self._sanitize_config_update(
+                    current_config,
+                    config_update,
+                    self._schema_properties(effect_type, schema_effects),
+                )
                 if target_virtual_id != virtual_id:
                     virtuals.pop(virtual_id, None)
                 virtuals[target_virtual_id] = current_virtual
@@ -2989,16 +3017,21 @@ class AppState:
     def _default_effect_config(effect_type: str, schema_effects: Dict[str, Any]) -> Dict[str, Any]:
         import copy
 
-        properties = (
-            schema_effects.get(effect_type, {})
-            .get("schema", {})
-            .get("properties", {})
-        )
+        properties = AppState._schema_properties(effect_type, schema_effects)
         return {
             key: copy.deepcopy(value.get("default"))
             for key, value in properties.items()
             if isinstance(value, dict) and "default" in value
         }
+
+    @staticmethod
+    def _schema_properties(effect_type: str, schema_effects: Dict[str, Any]) -> Dict[str, Any]:
+        properties = (
+            schema_effects.get(effect_type, {})
+            .get("schema", {})
+            .get("properties", {})
+        )
+        return properties if isinstance(properties, dict) else {}
 
     @staticmethod
     def _ordered_unique_ids(values: List[Any]) -> List[str]:
@@ -3068,15 +3101,59 @@ class AppState:
                 virtual.pop("preset_category", None)
 
     def _sanitize_config_update(
-        self, current_config: Dict[str, Any], config_update: Dict[str, Any]
+        self,
+        current_config: Dict[str, Any],
+        config_update: Dict[str, Any],
+        schema_properties: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        clean = dict(current_config)
+        allowed = set(schema_properties.keys()) if isinstance(schema_properties, dict) and schema_properties else None
+        clean = {
+            key: value
+            for key, value in current_config.items()
+            if allowed is None or key in allowed
+        }
         for key, value in config_update.items():
-            if key not in current_config:
+            if allowed is not None and key not in allowed:
                 continue
-            clean[key] = self._coerce_config_value(current_config[key], value)
+            if key in clean:
+                current_value = clean[key]
+            else:
+                current_value = self._schema_default_for_value(
+                    (schema_properties or {}).get(key, {}),
+                    value,
+                )
+            clean[key] = self._coerce_config_value(current_value, value)
         self._sync_config_gradient_name(clean, config_update)
         return clean
+
+    @staticmethod
+    def _schema_default_for_value(schema_prop: Dict[str, Any], value: Any) -> Any:
+        if isinstance(schema_prop, dict) and "default" in schema_prop:
+            return copy.deepcopy(schema_prop["default"])
+        prop_type = schema_prop.get("type") if isinstance(schema_prop, dict) else None
+        if isinstance(prop_type, list):
+            prop_type = next((item for item in prop_type if item != "null"), prop_type[0] if prop_type else None)
+        if prop_type == "boolean":
+            return False
+        if prop_type in ("integer", "int"):
+            return 0
+        if prop_type == "number":
+            return 0.0
+        if prop_type == "array":
+            return []
+        if prop_type == "object":
+            return {}
+        if isinstance(value, bool):
+            return False
+        if isinstance(value, int) and not isinstance(value, bool):
+            return 0
+        if isinstance(value, float):
+            return 0.0
+        if isinstance(value, list):
+            return []
+        if isinstance(value, dict):
+            return {}
+        return ""
 
     def _sync_config_gradient_name(self, config: Dict[str, Any], config_update: Dict[str, Any]) -> None:
         gradient_key = None

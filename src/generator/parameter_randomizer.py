@@ -52,7 +52,7 @@ class ParameterRandomizer:
         for key in ("diag", "advanced", "test", "dump"):
             if key in config:
                 config[key] = False
-        return config
+        return self._schema_config(config, properties)
 
     def _base_config(
         self,
@@ -182,6 +182,13 @@ class ParameterRandomizer:
                     config[key] = PaletteEngine.color(palette, role)
         if gradient_applied:
             config["gradient_name"] = palette_name
+
+    @staticmethod
+    def _schema_config(config: Dict[str, Any], properties: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(properties, dict) or not properties:
+            return config
+        allowed = set(properties.keys())
+        return {key: value for key, value in config.items() if key in allowed}
 
     @staticmethod
     def _looks_like_hex_color(value: str) -> bool:

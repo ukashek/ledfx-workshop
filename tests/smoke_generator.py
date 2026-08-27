@@ -238,6 +238,8 @@ def main() -> None:
                 "schema": {
                     "properties": {
                         "brightness": {"type": "number", "minimum": 0, "maximum": 1, "default": 1},
+                        "background_color": {"type": "color", "default": "#000000"},
+                        "gradient": {"type": "color", "gradient": True, "default": "linear-gradient(90deg, #000, #fff)"},
                         "gradient_roll": {"type": "number", "minimum": 0, "maximum": 10, "default": 0},
                     }
                 }
@@ -261,10 +263,64 @@ def main() -> None:
         variation=0.5,
     )
     assert subzero_config["gradient"] == subzero["gradient"]
-    assert subzero_config["gradient_name"] == subzero["name"]
+    assert "gradient_name" not in subzero_config
     assert subzero_config["background_color"] == subzero["colors"]["background"]
-    assert subzero_config["color"] == subzero["colors"]["mid"]
+    assert "color" not in subzero_config
     assert subzero_config["gradient_roll"] == 5
+
+    dirty_bar_config = ParameterRandomizer().build_config(
+        choice={
+            "effect_type": "bar",
+            "profile": profiles["effects"]["effects"]["bar"],
+            "preset_id": "old-mixed-bar",
+        },
+        palette=subzero,
+        energy=0.7,
+        schema_effects={
+            "bar": {
+                "schema": {
+                    "properties": {
+                        "background_brightness": {"type": "number", "minimum": 0, "maximum": 1, "default": 1},
+                        "background_color": {"type": "color", "default": "#000000"},
+                        "blur": {"type": "number", "minimum": 0, "maximum": 10, "default": 0},
+                        "brightness": {"type": "number", "minimum": 0, "maximum": 1, "default": 1},
+                        "color_step": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.125},
+                        "diag": {"type": "boolean", "default": False},
+                        "ease_method": {"type": "string", "enum": ["linear", "ease_in", "ease_out", "ease_in_out"], "default": "ease_out"},
+                        "flip": {"type": "boolean", "default": False},
+                        "gradient": {"type": "color", "gradient": True, "default": "linear-gradient(90deg, #000, #fff)"},
+                        "gradient_roll": {"type": "number", "minimum": 0, "maximum": 10, "default": 0},
+                        "mirror": {"type": "boolean", "default": False},
+                        "mode": {"type": "string", "enum": ["wipe", "bounce", "in-out", "cascade"], "default": "wipe"},
+                        "skip_every": {"type": "integer", "minimum": 1, "maximum": 8, "default": 1},
+                    }
+                }
+            }
+        },
+        ledfx_presets={
+            "bar": {
+                "old-mixed-bar": {
+                    "config": {
+                        "background_color": "#ff5400",
+                        "brightness": 1,
+                        "color_high": "#ff0000",
+                        "color_lows": "#ff5400",
+                        "color_mids": "#ffff00",
+                        "decay": 0.9,
+                        "gradient": "linear-gradient(90deg, #000000 0%, #ff5400 50%, #ff0000 100%)",
+                        "gradient_name": "Rainbow",
+                        "speed": 5,
+                        "threshold": 0.2,
+                    }
+                }
+            }
+        },
+        rng=random.Random("dirty-bar-subzero"),
+        variation=0.5,
+    )
+    assert dirty_bar_config["gradient"] == subzero["gradient"]
+    assert dirty_bar_config["background_color"] == subzero["colors"]["background"]
+    assert {"color_high", "color_lows", "color_mids", "decay", "speed", "threshold", "gradient_name"}.isdisjoint(dirty_bar_config)
     non_sound = generator.generate_batch(
         {
             "count": 2,
