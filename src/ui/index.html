@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LedFx Workshop</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/styles.css?v=20260826-selected-first" />
+    <link rel="stylesheet" href="/styles.css?v=20260826-apc-layout-fix-2" />
   </head>
   <body>
     <main class="app-shell">
@@ -57,7 +57,8 @@
       <nav class="app-tabs" aria-label="Application views">
         <button id="factoryTabButton" class="active" type="button">Scene Factory</button>
         <button id="presetLabTabButton" type="button">Preset Lab</button>
-        <button id="midiMapperTabButton" type="button">MIDI Patch</button>
+        <button id="midiMapperTabButton" type="button">Playlist Patch</button>
+        <button id="midiLayoutTabButton" type="button">MIDI Layout</button>
         <button id="liveModeTabButton" type="button">Live Mode</button>
         <button id="effectForgeTabButton" type="button">
           Effect Forge
@@ -736,12 +737,14 @@
         <section class="midi-panel">
           <div class="midi-head">
             <div>
-              <h2>MIDI Patch</h2>
+              <h2>Playlist Patch</h2>
               <p>Map MIDI pads or knobs to LedFx playlists and playlist transport.</p>
             </div>
             <div class="midi-actions">
               <button id="midiConnectButton" class="primary-action" type="button">Connect MIDI</button>
               <button id="midiRefreshLibraryButton" type="button">Refresh Playlists</button>
+              <button id="midiRefreshMappingsButton" type="button">Refresh Mappings</button>
+              <button id="midiResetAllButton" type="button" class="danger">Reset All Mappings</button>
             </div>
           </div>
 
@@ -749,12 +752,12 @@
             <section class="midi-card">
               <h3>
                 MIDI Input
-                <button class="info-button" type="button" data-tooltip="Connect browser Web MIDI to your controller. Input learns and triggers mappings; output drives pad LED feedback.">i</button>
+                <button class="info-button" type="button" data-tooltip="Connect browser Web MIDI to your controller. Notes are pad/button presses; Control means CC from knobs, faders or encoders; channel is the MIDI lane that must match the learned mapping.">i</button>
               </h3>
               <label>
                 <span class="field-title">
                   <span>Controller input</span>
-                  <button class="info-button" type="button" data-tooltip="Receives MIDI notes or CC messages from your controller. Use it for Learn and live triggering.">i</button>
+                  <button class="info-button" type="button" data-tooltip="Receives MIDI Notes from pads/buttons and MIDI Control Change from knobs/faders. Workshop learns the type, number and channel together.">i</button>
                 </span>
                 <select id="midiInputSelect"></select>
               </label>
@@ -792,7 +795,7 @@
             <section class="midi-card midi-controller-card">
               <h3>
                 Controller Feedback
-                <button class="info-button" type="button" data-tooltip="Global defaults for controller LEDs. Individual mappings can override color, mode and LED protocol in their Edit window.">i</button>
+                <button class="info-button" type="button" data-tooltip="Global defaults for controller LEDs. Individual mappings can override color, mode and LED feedback type in their Edit window.">i</button>
               </h3>
               <div class="midi-profile-bar">
                 <label>
@@ -840,12 +843,12 @@
                 </label>
                 <label>
                   <span class="field-title">
-                    <span>LED protocol</span>
+                    <span>LED feedback type</span>
                     <button class="info-button" type="button" data-tooltip="Choose how Workshop sends LED feedback. Channel-brightness uses separate MIDI channels for dim and full-bright states; same-channel sends feedback on the learned channel.">i</button>
                   </span>
                   <select id="midiLedProtocolSelect">
-                    <option value="akai_apc_mini_mk2">Channel-brightness RGB feedback</option>
-                    <option value="generic">Same-channel RGB feedback</option>
+                    <option value="akai_apc_mini_mk2">Channel-brightness RGB</option>
+                    <option value="generic">Same-channel velocity</option>
                   </select>
                 </label>
               </div>
@@ -872,6 +875,153 @@
                 <button id="midiClearMappingsButton" type="button">Clear All</button>
               </div>
               <div id="midiMappingList" class="midi-mapping-list"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section id="midiLayoutView" class="app-view midi-layout-view" hidden>
+        <section class="midi-panel midi-layout-panel">
+          <div class="midi-head">
+            <div>
+              <h2>Controller Layout Designer</h2>
+              <p>Build a visual MIDI pad surface for playlist launch, active-playlist transport and blackout.</p>
+            </div>
+            <div class="midi-actions midi-layout-actions">
+              <button id="midiLayoutConnectButton" class="primary-action" type="button">Connect MIDI</button>
+              <button id="midiLayoutAutoMapButton" type="button">Auto Map Playlists</button>
+              <button id="midiLayoutRefreshMappingsButton" type="button">Refresh Mappings</button>
+              <button id="midiLayoutClearButton" type="button" class="danger">Clear Layout</button>
+              <button id="midiLayoutResetAllButton" type="button" class="danger">Reset All Mappings</button>
+            </div>
+          </div>
+
+          <div class="midi-layout-workspace">
+            <section class="midi-card midi-layout-config-card">
+              <h3>
+                Controller Setup
+                <button class="info-button" type="button" data-tooltip="Choose a layout template and the browser MIDI ports used for Learn and LED feedback. The saved pads also appear in Playlist Patch mappings.">i</button>
+              </h3>
+              <div class="midi-layout-config-grid">
+                <label>
+                  <span class="field-title">
+                    <span>Controller model</span>
+                    <button class="info-button" type="button" data-tooltip="Defines the visual controller surface. Choose a real controller model when possible; use Custom for manual pad, button, knob and fader counts.">i</button>
+                  </span>
+                  <select id="midiLayoutTemplateSelect"></select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    <span>Controller input</span>
+                    <button class="info-button" type="button" data-tooltip="Receives MIDI from the controller. Notes usually means pads/buttons; Control usually means CC from knobs, faders and encoders. If a control does not flash in the surface, try the other input port.">i</button>
+                  </span>
+                  <select id="midiLayoutInputSelect"></select>
+                </label>
+                <label>
+                  <span class="field-title">
+                    <span>Controller output</span>
+                    <button class="info-button" type="button" data-tooltip="Sends LED feedback to the controller. For RGB pad controllers this is usually the Notes output; if LEDs do not change, try the other output port.">i</button>
+                  </span>
+                  <select id="midiLayoutOutputSelect"></select>
+                </label>
+              </div>
+              <p class="midi-port-guide">If your controller exposes both ports, start with <strong>Notes</strong> for pads/buttons and LED feedback. Use <strong>Control</strong> when you want knobs, faders or encoders and they do not appear on the Notes port. The app matches type, number and channel together.</p>
+              <div id="midiLayoutCustomEditor" class="midi-layout-custom-editor" hidden>
+                <div class="midi-layout-custom-grid">
+                  <label>
+                    <span class="field-title">
+                      <span>Model name</span>
+                      <button class="info-button" type="button" data-tooltip="Saved custom models appear in the Controller model list and keep their dimensions, labels and learned MIDI messages.">i</button>
+                    </span>
+                    <input id="midiLayoutCustomNameInput" type="text" maxlength="48" placeholder="My controller model" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      <span>Position grid</span>
+                      <button class="info-button" type="button" data-tooltip="Sets the drag-and-drop editing canvas. This does not change how many pads the controller has; controls that do not fit continue onto extra rows instead of overlapping.">i</button>
+                    </span>
+                    <select id="midiLayoutGridSizeSelect">
+                      <option value="4">4x4</option>
+                      <option value="8">8x8</option>
+                      <option value="12">12x12</option>
+                      <option value="16">16x16</option>
+                      <option value="custom">Custom saved size</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      <span>Rows</span>
+                      <button class="info-button" type="button" data-tooltip="Pad rows in the custom grid. This does not remove learned MIDI messages that still fit inside the new size.">i</button>
+                    </span>
+                    <input id="midiLayoutRowsInput" type="number" min="1" max="16" step="1" value="8" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      <span>Columns</span>
+                      <button class="info-button" type="button" data-tooltip="Pad columns in the custom grid. Rows times columns defines how many square pads are shown.">i</button>
+                    </span>
+                    <input id="midiLayoutColsInput" type="number" min="1" max="16" step="1" value="8" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      <span>Knobs</span>
+                      <button class="info-button" type="button" data-tooltip="Rotary controls displayed below the pad grid. Use Learn to bind their real CC messages.">i</button>
+                    </span>
+                    <input id="midiLayoutKnobsInput" type="number" min="0" max="32" step="1" value="0" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      <span>Buttons</span>
+                      <button class="info-button" type="button" data-tooltip="Extra transport or side buttons outside the main pad grid. They can launch playlists or control active-playlist transport.">i</button>
+                    </span>
+                    <input id="midiLayoutButtonsInput" type="number" min="0" max="48" step="1" value="0" />
+                  </label>
+                  <label>
+                    <span class="field-title">
+                      <span>Faders</span>
+                      <button class="info-button" type="button" data-tooltip="Slider/fader controls displayed below the pad grid. They usually send CC messages and do not have LED color feedback.">i</button>
+                    </span>
+                    <input id="midiLayoutFadersInput" type="number" min="0" max="32" step="1" value="0" />
+                  </label>
+                </div>
+                <div class="midi-layout-custom-actions">
+                  <button id="midiLayoutApplyCustomButton" type="button">Apply Layout</button>
+                  <button id="midiLayoutSaveCustomButton" type="button">Save Model</button>
+                  <button id="midiLayoutAddButtonButton" type="button">Add Button</button>
+                  <button id="midiLayoutAddKnobButton" type="button">Add Knob</button>
+                  <button id="midiLayoutAddFaderButton" type="button">Add Fader</button>
+                </div>
+              </div>
+              <p id="midiLayoutStatus" class="midi-status">MIDI layout is waiting for a controller.</p>
+            </section>
+
+            <section class="midi-card midi-layout-pad-card">
+              <div class="mini-head">
+                <h3>
+                  Controller Surface
+                <button class="info-button" type="button" data-tooltip="Click a control to edit its action and MIDI message. Use Edit Positions for Custom or saved Custom models, then drag controls on the grid. Built-in layouts can be converted to Custom before moving.">i</button>
+                </h3>
+                <div class="midi-layout-surface-actions">
+                  <span id="midiLayoutSummary" class="midi-mini-status">No pads mapped.</span>
+                  <div class="midi-layout-zoom-actions" aria-label="Controller surface zoom">
+                    <button id="midiLayoutZoomOutButton" type="button" aria-label="Zoom out">-</button>
+                    <span id="midiLayoutZoomValue" class="midi-zoom-value">100%</span>
+                    <button id="midiLayoutZoomInButton" type="button" aria-label="Zoom in">+</button>
+                  </div>
+                  <button id="midiLayoutClearSelectionButton" type="button" hidden>Clear Selection</button>
+                  <button id="midiLayoutPositionButton" type="button">Edit Positions</button>
+                </div>
+              </div>
+              <div id="midiLayoutGrid" class="midi-layout-grid"></div>
+            </section>
+
+            <section class="midi-card midi-layout-help-card">
+              <h3>
+                Performance Logic
+                <button class="info-button" type="button" data-tooltip="Start pads launch a specific playlist. Previous, Next and Stop always operate on the currently active LedFx playlist, so transport follows whatever playlist you just launched.">i</button>
+              </h3>
+              <p>Auto Map fills pads with loaded playlists and uses extra non-Shift buttons for Blackout, Previous, Next and Stop when the template has them. Previous and Next always step through scenes in the currently active LedFx playlist.</p>
+              <p><strong>Notes</strong> are button/pad messages: a note number plus channel. <strong>Control</strong> means MIDI CC messages from knobs, faders or encoders: a CC number, channel and changing value. <strong>Channel</strong> is the MIDI lane from 1-16; Workshop only triggers a mapping when type, number and channel match.</p>
             </section>
           </div>
         </section>
@@ -1002,8 +1152,12 @@
                 <p>Export or import a portable ZIP with Workshop profiles, generated queue, LedFx scenes, playlists and user preset configuration.</p>
               </article>
               <article>
-                <h3>MIDI Patch</h3>
+                <h3>Playlist Patch</h3>
                 <p>Manage playlists and map playlist start, stop, previous and next controls to a Web MIDI controller in supported browsers.</p>
+              </article>
+              <article>
+                <h3>MIDI Layout</h3>
+                <p>Design a controller grid visually, assign pad actions, learn physical controls and keep LED feedback colors organized per pad.</p>
               </article>
             </div>
           </div>
@@ -1075,7 +1229,7 @@
               <label>
                 <span class="field-title">
                   <span>MIDI message</span>
-                  <button class="info-button" type="button" data-tooltip="The learned note or control-change message. It is kept read-only so the mapping stays tied to the physical control you pressed.">i</button>
+                  <button class="info-button" type="button" data-tooltip="The learned Note or Control Change message plus channel. It is read-only so the mapping stays tied to the exact physical control you pressed.">i</button>
                 </span>
                 <input id="midiEditMessageInput" type="text" readonly />
               </label>
@@ -1107,20 +1261,114 @@
               </label>
               <label>
                 <span class="field-title">
-                  <span>LED protocol</span>
+                  <span>LED feedback type</span>
                   <button class="info-button" type="button" data-tooltip="Use controller default inherits the global protocol. Channel-brightness uses separate MIDI channels for dim/full LED states; same-channel reuses the learned channel.">i</button>
                 </span>
                 <select id="midiEditLedProtocolSelect">
                   <option value="inherit">Use controller default</option>
-                  <option value="akai_apc_mini_mk2">Channel-brightness RGB feedback</option>
-                  <option value="generic">Same-channel RGB feedback</option>
+                  <option value="akai_apc_mini_mk2">Channel-brightness RGB</option>
+                  <option value="generic">Same-channel velocity</option>
                 </select>
               </label>
             </div>
+            <p id="midiEditFeedbackNote" class="midi-feedback-note" hidden>This control does not expose LED feedback, so color and feedback settings are disabled.</p>
             <div class="editor-actions midi-editor-actions">
               <button id="saveMidiMappingEditButton" type="button">Save Mapping</button>
               <button id="testMidiMappingEditButton" type="button">Test</button>
               <button id="closeMidiMappingEditorButton" type="button">Close</button>
+            </div>
+          </div>
+
+          <div id="midiLayoutPadEditor" class="midi-mapping-editor midi-layout-pad-editor" hidden>
+            <p id="midiLayoutPadEditStatus" class="playlist-edit-status">Editing layout pad</p>
+            <div class="midi-mapping-form-grid midi-layout-pad-form-grid">
+              <label>
+                <span class="field-title">
+                  <span>Label</span>
+                  <button class="info-button" type="button" data-tooltip="Short name shown on the visual controller surface. Useful for naming knobs, faders or performance pads.">i</button>
+                </span>
+                <input id="midiLayoutPadLabelInput" type="text" maxlength="28" />
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Control type</span>
+                  <button class="info-button" type="button" data-tooltip="Visual type for this control. Pads usually send notes; knobs and faders usually send CC messages, but Learn captures the real hardware message.">i</button>
+                </span>
+                <input id="midiLayoutPadTypeInput" type="text" readonly />
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Action</span>
+                  <button class="info-button" type="button" data-tooltip="Choose what this controller control should trigger. Start uses a fixed playlist; transport controls follow the active playlist. Knobs and faders can be learned as CC triggers.">i</button>
+                </span>
+                <select id="midiLayoutPadActionSelect">
+                  <option value="empty">Empty control</option>
+                  <option value="start">Start playlist</option>
+                  <option value="prev">Previous scene</option>
+                  <option value="next">Next scene</option>
+                  <option value="stop">Stop active playlist</option>
+                  <option value="blackout">Blackout toggle</option>
+                </select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Playlist target</span>
+                  <button class="info-button" type="button" data-tooltip="Only Start playlist uses this field. Previous, Next and Stop always use the currently active LedFx playlist.">i</button>
+                </span>
+                <select id="midiLayoutPadPlaylistSelect"></select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>MIDI message</span>
+                  <button class="info-button" type="button" data-tooltip="The physical MIDI message for this control. Note usually means a pad/button press; CC means Control Change from a knob, fader or encoder. The channel is part of the match.">i</button>
+                </span>
+                <input id="midiLayoutPadMessageInput" type="text" readonly />
+              </label>
+              <label class="midi-color-field">
+                <span class="field-title">
+                  <span>On color</span>
+                  <button class="info-button" type="button" data-tooltip="LED color sent when this pad is active or triggered. Channel-brightness protocol sends it at full brightness.">i</button>
+                </span>
+                <select id="midiLayoutPadColorOnSelect"></select>
+              </label>
+              <label class="midi-color-field">
+                <span class="field-title">
+                  <span>Off color</span>
+                  <button class="info-button" type="button" data-tooltip="LED color sent when this pad is inactive. Use Black for dark pads or a dim locator color.">i</button>
+                </span>
+                <select id="midiLayoutPadColorOffSelect"></select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>Pad mode</span>
+                  <button class="info-button" type="button" data-tooltip="Use controller default inherits global Playlist Patch behavior. Latch stays synced, Momentary flashes, Off disables LED feedback for this pad.">i</button>
+                </span>
+                <select id="midiLayoutPadFeedbackModeSelect">
+                  <option value="inherit">Use controller default</option>
+                  <option value="latch">Latch active state</option>
+                  <option value="momentary">Momentary flash</option>
+                  <option value="off">LED feedback off</option>
+                </select>
+              </label>
+              <label>
+                <span class="field-title">
+                  <span>LED feedback type</span>
+                    <button class="info-button" type="button" data-tooltip="Use controller default inherits global Playlist Patch feedback type. Channel-brightness is best for controllers that use MIDI channels as LED brightness levels; same-channel is safer for generic devices.">i</button>
+                </span>
+                <select id="midiLayoutPadLedProtocolSelect">
+                  <option value="inherit">Use controller default</option>
+                  <option value="akai_apc_mini_mk2">Channel-brightness RGB</option>
+                  <option value="generic">Same-channel velocity</option>
+                </select>
+              </label>
+            </div>
+            <p id="midiLayoutPadFeedbackNote" class="midi-feedback-note" hidden>Faders normally do not have LEDs, so Workshop stores the MIDI action but skips ON/OFF colors and LED feedback for this control.</p>
+            <div class="editor-actions midi-editor-actions midi-layout-editor-actions">
+              <button id="saveMidiLayoutPadButton" type="button">Save Pad</button>
+              <button id="learnMidiLayoutPadButton" type="button">Learn MIDI</button>
+              <button id="testMidiLayoutPadButton" type="button">Test</button>
+              <button id="clearMidiLayoutPadButton" type="button" class="danger">Clear Pad</button>
+              <button id="closeMidiLayoutPadEditorButton" type="button">Close</button>
             </div>
           </div>
 
@@ -1131,6 +1379,6 @@
 
     <div id="infoTooltip" class="info-tooltip" hidden></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/app.js?v=20260826-selected-first"></script>
+    <script src="/app.js?v=20260826-controller-layouts"></script>
   </body>
 </html>

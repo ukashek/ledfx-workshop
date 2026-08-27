@@ -2,6 +2,10 @@ const MIDI_MAPPINGS_KEY = "lsf.midi_mappings";
 const MIDI_CONTROLLER_KEY = "lsf.midi_controller_settings";
 const MIDI_PROFILES_KEY = "lsf.midi_profiles";
 const MIDI_SELECTED_PROFILE_KEY = "lsf.midi_profile";
+const MIDI_LAYOUT_KEY = "lsf.midi_layout";
+const MIDI_LAYOUT_CUSTOM_TEMPLATES_KEY = "lsf.midi_layout_templates";
+const MIDI_LAYOUT_ACTIVITY_MS = 900;
+const MIDI_LAYOUT_ZOOM_KEY = "lsf.midi_layout_zoom";
 
 const DEFAULT_MIDI_CONTROLLER = {
   colorOn: 87,
@@ -145,8 +149,277 @@ const MIDI_COLOR_OPTIONS = [
 
 const MIDI_COLOR_BY_VALUE = new Map(MIDI_COLOR_OPTIONS.map((item) => [item.value, item]));
 const MIDI_MAPPING_ACTIONS = new Set(["start", "stop", "prev", "next", "blackout"]);
+const MIDI_LAYOUT_ACTIONS = new Set(["empty", ...MIDI_MAPPING_ACTIONS]);
+const MIDI_LAYOUT_CONTROL_TYPES = new Set(["pad", "button", "knob", "fader"]);
 const MIDI_LED_PROTOCOLS = new Set(["generic", "akai_apc_mini_mk2"]);
+const MIDI_FEEDBACK_TYPES = new Set(["rgb", "single", "none"]);
 const MIDI_COLOR_TABLE = "apc_mk2";
+const MIDI_LAYOUT_GRID_SIZE_OPTIONS = [4, 8, 12, 16];
+const MIDI_LAYOUT_ZOOM_MIN = 0.5;
+const MIDI_LAYOUT_ZOOM_MAX = 1.5;
+const MIDI_LAYOUT_ZOOM_STEP = 0.1;
+const MIDI_ACTION_FEEDBACK_DEFAULTS = {
+  blackout: {colorOn: 5, colorOff: 0, feedbackMode: "latch"},
+  stop: {colorOn: 96, colorOff: 0, feedbackMode: "momentary"},
+  prev: {colorOn: 78, colorOff: 0, feedbackMode: "momentary"},
+  next: {colorOn: 87, colorOff: 0, feedbackMode: "momentary"},
+};
+const APC_MINI_MK2_BUTTONS = [
+  ...Array.from({length: 8}, (_, index) => ({
+    label: `Track ${index + 1}`,
+    role: "track",
+    messageType: "note",
+    number: 100 + index,
+    lit: true,
+    feedbackType: "single",
+  })),
+  ...Array.from({length: 8}, (_, index) => ({
+    label: `Scene ${index + 1}`,
+    role: "scene",
+    messageType: "note",
+    number: 112 + index,
+    lit: true,
+    feedbackType: "single",
+  })),
+  {
+    label: "Shift",
+    role: "shift",
+    messageType: "note",
+    number: 122,
+    lit: false,
+    feedbackType: "none",
+  },
+];
+const APC_MINI_MK2_FULL_RESET_NOTES = [
+  ...Array.from({length: 64}, (_, index) => index),
+  ...APC_MINI_MK2_BUTTONS.map((button) => button.number),
+];
+const LAUNCHPAD_MINI_MK3_BUTTONS = [
+  ...["Up", "Down", "Left", "Right", "Session", "Drums", "Keys", "User"].map((label, index) => ({
+    label,
+    role: "top",
+    messageType: "cc",
+    number: 91 + index,
+    lit: true,
+    feedbackType: "single",
+  })),
+  ...Array.from({length: 8}, (_, index) => ({
+    label: `Scene ${index + 1}`,
+    role: "scene",
+    messageType: "cc",
+    number: 89 - (index * 10),
+    lit: true,
+    feedbackType: "single",
+  })),
+];
+const LAUNCHKEY_MINI_MK3_BUTTONS = [
+  ["Track Left", "cc", 104],
+  ["Track Right", "cc", 105],
+  ["Scene Down", "cc", 106],
+  ["Scene Up", "cc", 107],
+  ["Stop/Solo/Mute", "cc", 108],
+  ["Play", "cc", 109],
+  ["Record", "cc", 110],
+  ["Shift", "cc", 111],
+].map(([label, messageType, number]) => ({
+  label,
+  role: "utility",
+  messageType,
+  number,
+  lit: true,
+  feedbackType: "single",
+}));
+const ARTURIA_MINILAB3_BUTTONS = [
+  ["Shift", 112],
+  ["Hold", 113],
+  ["Chord", 114],
+  ["Octave", 115],
+].map(([label, number]) => ({
+  label,
+  role: "utility",
+  messageType: "cc",
+  number,
+  lit: true,
+  feedbackType: "single",
+}));
+const MIDI_LAYOUT_TEMPLATES = [
+  {
+    id: "akai_apc_mini_mk2",
+    label: "Akai APC Mini MK2",
+    rows: 8,
+    cols: 8,
+    buttons: 17,
+    knobs: 0,
+    faders: 9,
+    noteStart: 0,
+    buttonMessageType: "note",
+    ccStart: 16,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    padOrder: "bottom-to-top",
+    physicalLayout: "akai_apc_mini_mk2",
+    ledProtocol: "akai_apc_mini_mk2",
+    buttonDefinitions: APC_MINI_MK2_BUTTONS,
+    description: "64 RGB pads, eight Track buttons below the pad matrix, eight Scene Launch buttons on the right, Shift and nine CC faders. Faders have no LED feedback.",
+  },
+  {
+    id: "novation_launchpad_mini_mk3",
+    label: "Novation Launchpad Mini MK3",
+    rows: 8,
+    cols: 8,
+    buttons: 16,
+    knobs: 0,
+    faders: 0,
+    noteStart: 11,
+    buttonNoteStart: 91,
+    buttonMessageType: "cc",
+    ccStart: 48,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    physicalLayout: "novation_launchpad_mini_mk3",
+    padLabels: Array.from({length: 64}, (_, index) => {
+      const row = Math.floor(index / 8);
+      const col = index % 8;
+      return `${8 - row}${col + 1}`;
+    }),
+    buttonDefinitions: LAUNCHPAD_MINI_MK3_BUTTONS,
+    ledProtocol: "generic",
+    description: "8x8 pad grid with top navigation/mode buttons and a right-hand scene column. Use Learn if your browser exposes a different MIDI mode.",
+  },
+  {
+    id: "novation_launchkey_mini_mk3",
+    label: "Novation Launchkey Mini MK3",
+    rows: 2,
+    cols: 8,
+    buttons: 8,
+    knobs: 8,
+    faders: 0,
+    noteStart: 36,
+    buttonCcStart: 104,
+    buttonMessageType: "cc",
+    ccStart: 21,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    physicalLayout: "novation_launchkey_mini_mk3",
+    padLabels: Array.from({length: 16}, (_, index) => `Pad ${index + 1}`),
+    buttonDefinitions: LAUNCHKEY_MINI_MK3_BUTTONS,
+    ledProtocol: "generic",
+    description: "16 RGB pads, eight rotary controls and compact transport/utility buttons.",
+  },
+  {
+    id: "akai_mpk_mini_mk3",
+    label: "Akai MPK Mini MK3",
+    rows: 2,
+    cols: 4,
+    buttons: 0,
+    knobs: 8,
+    faders: 0,
+    noteStart: 36,
+    ccStart: 70,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    physicalLayout: "akai_mpk_mini_mk3",
+    padLabels: Array.from({length: 8}, (_, index) => `Pad ${index + 1}`),
+    ledProtocol: "generic",
+    description: "Eight pads and eight rotary encoders. Useful for small playlist banks and effect controls.",
+  },
+  {
+    id: "arturia_minilab_3",
+    label: "Arturia MiniLab 3",
+    rows: 2,
+    cols: 4,
+    buttons: 4,
+    knobs: 8,
+    faders: 4,
+    noteStart: 36,
+    buttonCcStart: 112,
+    buttonMessageType: "cc",
+    ccStart: 74,
+    faderCcStart: 18,
+    noteDirection: "forward",
+    physicalLayout: "arturia_minilab_3",
+    padLabels: Array.from({length: 8}, (_, index) => `Pad ${index + 1}`),
+    buttonDefinitions: ARTURIA_MINILAB3_BUTTONS,
+    ledProtocol: "generic",
+    description: "Compact keyboard layout with pads, encoders, control buttons and four slider placeholders.",
+  },
+  {
+    id: "generic_8x8_pads",
+    label: "Generic 8x8 Pad Controller",
+    rows: 8,
+    cols: 8,
+    buttons: 0,
+    knobs: 0,
+    faders: 0,
+    noteStart: 0,
+    ccStart: 16,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    ledProtocol: "generic",
+    description: "Safe fallback for 64-pad controllers. Use Learn to replace guessed notes with exact messages.",
+  },
+  {
+    id: "generic_4x4_pads",
+    label: "Generic 4x4 Pad Controller",
+    rows: 4,
+    cols: 4,
+    buttons: 0,
+    knobs: 0,
+    faders: 0,
+    noteStart: 0,
+    ccStart: 16,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    ledProtocol: "generic",
+    description: "Small 16-pad setup for quick playlist launch pages and test rigs.",
+  },
+  {
+    id: "generic_4x4_knobs_faders",
+    label: "Generic 4x4 + Knobs/Faders",
+    rows: 4,
+    cols: 4,
+    buttons: 4,
+    knobs: 8,
+    faders: 8,
+    noteStart: 0,
+    buttonCcStart: 32,
+    buttonMessageType: "cc",
+    ccStart: 16,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    physicalLayout: "generic_hybrid",
+    ledProtocol: "generic",
+    description: "Hybrid controller template with pads, utility buttons, knobs and faders.",
+  },
+  {
+    id: "custom",
+    label: "Custom Controller",
+    rows: 8,
+    cols: 8,
+    surfaceRows: 16,
+    surfaceCols: 16,
+    buttons: 0,
+    knobs: 0,
+    faders: 0,
+    noteStart: 0,
+    buttonCcStart: 32,
+    buttonMessageType: "cc",
+    ccStart: 16,
+    faderCcStart: 48,
+    noteDirection: "forward",
+    custom: true,
+    ledProtocol: "generic",
+    description: "Editable rows, columns, buttons, knobs and faders for controllers that do not match a preset.",
+  },
+];
+const MIDI_LAYOUT_DEFAULT_TEMPLATE = MIDI_LAYOUT_TEMPLATES[0].id;
+const MIDI_LAYOUT_TEMPLATE_ALIASES = new Map([
+  ["apc_8x8", "akai_apc_mini_mk2"],
+  ["generic_8x8", "generic_8x8_pads"],
+  ["compact_4x4", "generic_4x4_pads"],
+  ["hybrid_4x4_controls", "generic_4x4_knobs_faders"],
+]);
+const MIDI_LAYOUT_COLOR_SEQUENCE = [87, 96, 78, 94, 13, 17, 90, 45, 72, 85, 80, 52, 109, 114, 95, 3];
 const LEGACY_MIDI_COLOR_MAP = new Map([
   [1, 21],
   [2, 21],
@@ -182,6 +455,7 @@ const state = {
   editingPlaylistId: null,
   editingPublishedSceneId: null,
   editingMidiMappingId: null,
+  editingMidiLayoutPadId: null,
   gradientDrag: null,
   editingStyle: null,
   forgePreview: {
@@ -205,9 +479,18 @@ const state = {
     selectedOutputId: localStorage.getItem("lsf.midi_output") || "",
     controller: loadMidiControllerSettings(),
     mappings: loadMidiMappings(),
+    layout: loadMidiLayout(),
     profiles: loadMidiProfiles(),
     selectedProfileId: localStorage.getItem(MIDI_SELECTED_PROFILE_KEY) || "",
     learn: null,
+    layoutActivity: null,
+    layoutActivityTimer: null,
+    layoutPositionMode: false,
+    layoutDragId: "",
+    layoutDragIds: [],
+    layoutSuppressClickUntil: 0,
+    layoutSelectedIds: new Set(),
+    layoutZoom: loadMidiLayoutZoom(),
     lastTrigger: {},
     globalBrightnessRequestId: 0,
   },
@@ -608,11 +891,13 @@ const els = {
   liveModeView: document.querySelector("#liveModeView"),
   effectForgeView: document.querySelector("#effectForgeView"),
   midiMapperView: document.querySelector("#midiMapperView"),
+  midiLayoutView: document.querySelector("#midiLayoutView"),
   factoryTabButton: document.querySelector("#factoryTabButton"),
   presetLabTabButton: document.querySelector("#presetLabTabButton"),
   liveModeTabButton: document.querySelector("#liveModeTabButton"),
   effectForgeTabButton: document.querySelector("#effectForgeTabButton"),
   midiMapperTabButton: document.querySelector("#midiMapperTabButton"),
+  midiLayoutTabButton: document.querySelector("#midiLayoutTabButton"),
   connectionLine: document.querySelector("#connectionLine"),
   connectionStatus: document.querySelector("#connectionStatus"),
   connectionStatusText: document.querySelector("#connectionStatusText"),
@@ -824,6 +1109,8 @@ const els = {
   copyForgeInstructionsButton: document.querySelector("#copyForgeInstructionsButton"),
   midiConnectButton: document.querySelector("#midiConnectButton"),
   midiRefreshLibraryButton: document.querySelector("#midiRefreshLibraryButton"),
+  midiRefreshMappingsButton: document.querySelector("#midiRefreshMappingsButton"),
+  midiResetAllButton: document.querySelector("#midiResetAllButton"),
   midiInputSelect: document.querySelector("#midiInputSelect"),
   midiOutputSelect: document.querySelector("#midiOutputSelect"),
   midiStatus: document.querySelector("#midiStatus"),
@@ -850,6 +1137,7 @@ const els = {
   midiEditColorOffSelect: document.querySelector("#midiEditColorOffSelect"),
   midiEditFeedbackModeSelect: document.querySelector("#midiEditFeedbackModeSelect"),
   midiEditLedProtocolSelect: document.querySelector("#midiEditLedProtocolSelect"),
+  midiEditFeedbackNote: document.querySelector("#midiEditFeedbackNote"),
   midiProfileSelect: document.querySelector("#midiProfileSelect"),
   midiProfileNameInput: document.querySelector("#midiProfileNameInput"),
   midiSaveProfileButton: document.querySelector("#midiSaveProfileButton"),
@@ -858,6 +1146,52 @@ const els = {
   saveMidiMappingEditButton: document.querySelector("#saveMidiMappingEditButton"),
   testMidiMappingEditButton: document.querySelector("#testMidiMappingEditButton"),
   closeMidiMappingEditorButton: document.querySelector("#closeMidiMappingEditorButton"),
+  midiLayoutConnectButton: document.querySelector("#midiLayoutConnectButton"),
+  midiLayoutAutoMapButton: document.querySelector("#midiLayoutAutoMapButton"),
+  midiLayoutRefreshMappingsButton: document.querySelector("#midiLayoutRefreshMappingsButton"),
+  midiLayoutClearButton: document.querySelector("#midiLayoutClearButton"),
+  midiLayoutResetAllButton: document.querySelector("#midiLayoutResetAllButton"),
+  midiLayoutTemplateSelect: document.querySelector("#midiLayoutTemplateSelect"),
+  midiLayoutCustomEditor: document.querySelector("#midiLayoutCustomEditor"),
+  midiLayoutCustomNameInput: document.querySelector("#midiLayoutCustomNameInput"),
+  midiLayoutGridSizeSelect: document.querySelector("#midiLayoutGridSizeSelect"),
+  midiLayoutRowsInput: document.querySelector("#midiLayoutRowsInput"),
+  midiLayoutColsInput: document.querySelector("#midiLayoutColsInput"),
+  midiLayoutKnobsInput: document.querySelector("#midiLayoutKnobsInput"),
+  midiLayoutButtonsInput: document.querySelector("#midiLayoutButtonsInput"),
+  midiLayoutFadersInput: document.querySelector("#midiLayoutFadersInput"),
+  midiLayoutApplyCustomButton: document.querySelector("#midiLayoutApplyCustomButton"),
+  midiLayoutSaveCustomButton: document.querySelector("#midiLayoutSaveCustomButton"),
+  midiLayoutAddButtonButton: document.querySelector("#midiLayoutAddButtonButton"),
+  midiLayoutAddKnobButton: document.querySelector("#midiLayoutAddKnobButton"),
+  midiLayoutAddFaderButton: document.querySelector("#midiLayoutAddFaderButton"),
+  midiLayoutInputSelect: document.querySelector("#midiLayoutInputSelect"),
+  midiLayoutOutputSelect: document.querySelector("#midiLayoutOutputSelect"),
+  midiLayoutStatus: document.querySelector("#midiLayoutStatus"),
+  midiLayoutSummary: document.querySelector("#midiLayoutSummary"),
+  midiLayoutZoomOutButton: document.querySelector("#midiLayoutZoomOutButton"),
+  midiLayoutZoomInButton: document.querySelector("#midiLayoutZoomInButton"),
+  midiLayoutZoomValue: document.querySelector("#midiLayoutZoomValue"),
+  midiLayoutClearSelectionButton: document.querySelector("#midiLayoutClearSelectionButton"),
+  midiLayoutPositionButton: document.querySelector("#midiLayoutPositionButton"),
+  midiLayoutGrid: document.querySelector("#midiLayoutGrid"),
+  midiLayoutPadEditor: document.querySelector("#midiLayoutPadEditor"),
+  midiLayoutPadEditStatus: document.querySelector("#midiLayoutPadEditStatus"),
+  midiLayoutPadLabelInput: document.querySelector("#midiLayoutPadLabelInput"),
+  midiLayoutPadTypeInput: document.querySelector("#midiLayoutPadTypeInput"),
+  midiLayoutPadActionSelect: document.querySelector("#midiLayoutPadActionSelect"),
+  midiLayoutPadPlaylistSelect: document.querySelector("#midiLayoutPadPlaylistSelect"),
+  midiLayoutPadMessageInput: document.querySelector("#midiLayoutPadMessageInput"),
+  midiLayoutPadColorOnSelect: document.querySelector("#midiLayoutPadColorOnSelect"),
+  midiLayoutPadColorOffSelect: document.querySelector("#midiLayoutPadColorOffSelect"),
+  midiLayoutPadFeedbackModeSelect: document.querySelector("#midiLayoutPadFeedbackModeSelect"),
+  midiLayoutPadLedProtocolSelect: document.querySelector("#midiLayoutPadLedProtocolSelect"),
+  midiLayoutPadFeedbackNote: document.querySelector("#midiLayoutPadFeedbackNote"),
+  saveMidiLayoutPadButton: document.querySelector("#saveMidiLayoutPadButton"),
+  learnMidiLayoutPadButton: document.querySelector("#learnMidiLayoutPadButton"),
+  testMidiLayoutPadButton: document.querySelector("#testMidiLayoutPadButton"),
+  clearMidiLayoutPadButton: document.querySelector("#clearMidiLayoutPadButton"),
+  closeMidiLayoutPadEditorButton: document.querySelector("#closeMidiLayoutPadEditorButton"),
   infoTooltip: document.querySelector("#infoTooltip"),
   toast: document.querySelector("#toast"),
 };
@@ -1016,6 +1350,7 @@ function hideModalPanels() {
   if (els.presetBankEditor) els.presetBankEditor.hidden = true;
   if (els.playlistEditor) els.playlistEditor.hidden = true;
   if (els.midiMappingEditor) els.midiMappingEditor.hidden = true;
+  if (els.midiLayoutPadEditor) els.midiLayoutPadEditor.hidden = true;
   if (els.tabsGuidePanel) els.tabsGuidePanel.hidden = true;
   if (els.sceneEditorHost) {
     els.sceneEditorHost.innerHTML = "";
@@ -1032,6 +1367,7 @@ function openTabsGuide() {
   state.editingPublishedSceneId = null;
   state.editingPlaylistId = null;
   state.editingMidiMappingId = null;
+  state.editingMidiLayoutPadId = null;
   hideModalPanels();
   if (els.tabsGuidePanel) els.tabsGuidePanel.hidden = false;
   openModal("Workshop Guide");
@@ -1046,6 +1382,7 @@ function closeModal() {
   state.editingPublishedSceneId = null;
   state.editingPlaylistId = null;
   state.editingMidiMappingId = null;
+  state.editingMidiLayoutPadId = null;
   state.playlistSceneIds = new Set();
   hideModalPanels();
   renderStyleEditor();
@@ -1057,6 +1394,7 @@ function closeModal() {
   hideModal();
   renderScenes();
   renderLedFxLibrary();
+  renderMidiLayoutDesigner();
 }
 
 function checkedValues(container, name) {
@@ -1107,24 +1445,28 @@ function syncGenerationPanelHeights() {
 }
 
 function setAppView(view) {
-  const activeView = ["factory", "presets", "midi", "live", "forge"].includes(view) ? view : "factory";
+  const activeView = ["factory", "presets", "midi", "layout", "live", "forge"].includes(view) ? view : "factory";
   if (els.factoryView) els.factoryView.hidden = activeView !== "factory";
   if (els.presetLabView) els.presetLabView.hidden = activeView !== "presets";
   if (els.liveModeView) els.liveModeView.hidden = activeView !== "live";
   if (els.effectForgeView) els.effectForgeView.hidden = activeView !== "forge";
   if (els.midiMapperView) els.midiMapperView.hidden = activeView !== "midi";
+  if (els.midiLayoutView) els.midiLayoutView.hidden = activeView !== "layout";
   if (els.factoryTabButton) els.factoryTabButton.classList.toggle("active", activeView === "factory");
   if (els.presetLabTabButton) els.presetLabTabButton.classList.toggle("active", activeView === "presets");
   if (els.liveModeTabButton) els.liveModeTabButton.classList.toggle("active", activeView === "live");
   if (els.effectForgeTabButton) els.effectForgeTabButton.classList.toggle("active", activeView === "forge");
   if (els.midiMapperTabButton) els.midiMapperTabButton.classList.toggle("active", activeView === "midi");
+  if (els.midiLayoutTabButton) els.midiLayoutTabButton.classList.toggle("active", activeView === "layout");
   if (els.factoryTabButton) els.factoryTabButton.setAttribute("aria-selected", String(activeView === "factory"));
   if (els.presetLabTabButton) els.presetLabTabButton.setAttribute("aria-selected", String(activeView === "presets"));
   if (els.liveModeTabButton) els.liveModeTabButton.setAttribute("aria-selected", String(activeView === "live"));
   if (els.effectForgeTabButton) els.effectForgeTabButton.setAttribute("aria-selected", String(activeView === "forge"));
   if (els.midiMapperTabButton) els.midiMapperTabButton.setAttribute("aria-selected", String(activeView === "midi"));
+  if (els.midiLayoutTabButton) els.midiLayoutTabButton.setAttribute("aria-selected", String(activeView === "layout"));
   if (activeView === "presets") renderPresetLab();
   if (activeView === "midi") renderMidiMapper();
+  if (activeView === "layout") renderMidiLayoutDesigner();
   if (activeView === "live") renderLiveMode();
   if (activeView === "forge") {
     renderForgePreviewParamFields();
@@ -1138,7 +1480,8 @@ function setAppView(view) {
 }
 
 function initializeAppView() {
-  setAppView(localStorage.getItem("lsf.active_view") || "factory");
+  const requestedView = new URLSearchParams(window.location.search).get("view");
+  setAppView(requestedView || localStorage.getItem("lsf.active_view") || "factory");
 }
 
 function renderForgeBehaviorOptions() {
@@ -4612,6 +4955,7 @@ function renderLedFxLibrary() {
   renderPlaylistScenePicker();
   renderPlaylists();
   renderMidiMapper();
+  renderMidiLayoutDesigner();
   renderLiveMode();
   renderBulkSceneSummary();
   renderPlaylistEditStatus();
@@ -5531,6 +5875,10 @@ function sanitizeMidiMapping(item) {
     feedbackMode: validMidiFeedbackMode(item.feedbackMode),
     ledProtocol: validMidiLedProtocol(item.ledProtocol),
     colorTable: MIDI_COLOR_TABLE,
+    layoutPadId: item.layoutPadId ? String(item.layoutPadId) : null,
+    layoutControlType: MIDI_LAYOUT_CONTROL_TYPES.has(item.layoutControlType) ? item.layoutControlType : null,
+    supportsFeedback: item.supportsFeedback === false ? false : true,
+    feedbackType: validMidiFeedbackType(item.feedbackType) || (item.supportsFeedback === false ? "none" : "rgb"),
   };
 }
 
@@ -5548,6 +5896,10 @@ function validMidiFeedbackMode(value) {
 
 function validMidiLedProtocol(value) {
   return MIDI_LED_PROTOCOLS.has(value) ? value : null;
+}
+
+function validMidiFeedbackType(value) {
+  return MIDI_FEEDBACK_TYPES.has(value) ? value : null;
 }
 
 function midiMappingId(action, playlistId, message) {
@@ -5587,6 +5939,2369 @@ function saveMidiMappings() {
   localStorage.setItem(MIDI_MAPPINGS_KEY, JSON.stringify(state.midi.mappings));
 }
 
+function loadMidiLayout() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MIDI_LAYOUT_KEY) || "{}");
+    return sanitizeMidiLayout(parsed);
+  } catch (error) {
+    return sanitizeMidiLayout({});
+  }
+}
+
+function saveMidiLayout() {
+  localStorage.setItem(MIDI_LAYOUT_KEY, JSON.stringify(state.midi.layout));
+}
+
+function normalizeMidiLayoutZoom(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 1;
+  return Math.round(Math.max(MIDI_LAYOUT_ZOOM_MIN, Math.min(MIDI_LAYOUT_ZOOM_MAX, number)) * 100) / 100;
+}
+
+function loadMidiLayoutZoom() {
+  return normalizeMidiLayoutZoom(localStorage.getItem(MIDI_LAYOUT_ZOOM_KEY) || "1");
+}
+
+function saveMidiLayoutZoom() {
+  localStorage.setItem(MIDI_LAYOUT_ZOOM_KEY, String(normalizeMidiLayoutZoom(state.midi.layoutZoom)));
+}
+
+function loadCustomMidiLayoutTemplates() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MIDI_LAYOUT_CUSTOM_TEMPLATES_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(sanitizeCustomMidiLayoutTemplate).filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveCustomMidiLayoutTemplates(templates) {
+  const cleanTemplates = (Array.isArray(templates) ? templates : [])
+    .map(sanitizeCustomMidiLayoutTemplate)
+    .filter(Boolean);
+  localStorage.setItem(MIDI_LAYOUT_CUSTOM_TEMPLATES_KEY, JSON.stringify(cleanTemplates));
+}
+
+function allMidiLayoutTemplates() {
+  return [...MIDI_LAYOUT_TEMPLATES, ...loadCustomMidiLayoutTemplates()];
+}
+
+function sanitizeCustomMidiLayoutTemplate(item) {
+  if (!item || typeof item !== "object") return null;
+  const label = String(item.label || item.name || "").trim().slice(0, 48);
+  if (!label) return null;
+  const id = String(item.id || `custom_${snakeCase(label) || Date.now().toString(36)}`).trim();
+  if (!id || MIDI_LAYOUT_TEMPLATES.some((template) => template.id === id)) return null;
+  const fallback = MIDI_LAYOUT_TEMPLATES.find((template) => template.id === "custom") || {
+    rows: 8,
+    cols: 8,
+    buttons: 0,
+    knobs: 0,
+    faders: 0,
+    noteStart: 0,
+    buttonCcStart: 32,
+    ccStart: 16,
+    faderCcStart: 48,
+  };
+  const rows = midiLayoutNumber(item.rows, 1, 16, fallback.rows);
+  const cols = midiLayoutNumber(item.cols, 1, 16, fallback.cols);
+  const surfaceRows = midiLayoutNumber(item.surfaceRows ?? item.canvasRows, 1, 32, fallback.surfaceRows || rows);
+  const surfaceCols = midiLayoutNumber(item.surfaceCols ?? item.canvasCols, 1, 32, fallback.surfaceCols || cols);
+  const buttons = midiLayoutNumber(item.buttons, 0, 48, fallback.buttons || 0);
+  const knobs = midiLayoutNumber(item.knobs, 0, 32, fallback.knobs || 0);
+  const faders = midiLayoutNumber(item.faders, 0, 32, fallback.faders || 0);
+  const defaultControls = Array.isArray(item.defaultControls)
+    ? item.defaultControls.map((control) => sanitizeMidiLayoutTemplateControl(control)).filter(Boolean)
+    : [];
+  return {
+    id,
+    label,
+    sourceTemplate: String(item.sourceTemplate || item.baseTemplate || "").trim(),
+    physicalLayout: String(item.physicalLayout || "").trim(),
+    layoutRepairVersion: String(item.layoutRepairVersion || "").trim(),
+    rows,
+    cols,
+    surfaceRows,
+    surfaceCols,
+    buttons,
+    knobs,
+    faders,
+    noteStart: midiLayoutNumber(item.noteStart, 0, 127, fallback.noteStart || 0),
+    buttonCcStart: midiLayoutNumber(item.buttonCcStart, 0, 127, fallback.buttonCcStart || 32),
+    buttonMessageType: item.buttonMessageType === "note" ? "note" : "cc",
+    ccStart: midiLayoutNumber(item.ccStart, 0, 127, fallback.ccStart || 16),
+    faderCcStart: midiLayoutNumber(item.faderCcStart, 0, 127, fallback.faderCcStart || 48),
+    noteDirection: item.noteDirection === "reverse" ? "reverse" : "forward",
+    padOrder: item.padOrder === "bottom-to-top" ? "bottom-to-top" : "top-to-bottom",
+    ledProtocol: validMidiLedProtocol(item.ledProtocol) || "generic",
+    custom: true,
+    savedCustom: true,
+    defaultControls,
+    description: String(item.description || "Saved custom controller model with learned labels and MIDI messages.").trim(),
+  };
+}
+
+function sanitizeMidiLayoutTemplateControl(control) {
+  if (!control || typeof control !== "object" || !control.id) return null;
+  const controlType = MIDI_LAYOUT_CONTROL_TYPES.has(control.controlType || control.type)
+    ? (control.controlType || control.type)
+    : "pad";
+  return {
+    id: String(control.id),
+    index: Math.max(0, Math.round(Number(control.index) || 0)),
+    row: midiLayoutCoordinate(control.row, 0),
+    col: midiLayoutCoordinate(control.col, 0),
+    controlType,
+    type: controlType,
+    label: String(control.label || "Control").trim().slice(0, 28) || "Control",
+    role: String(control.role || "").trim(),
+    lit: controlType === "fader" ? false : control.lit !== false,
+    feedbackType: validMidiFeedbackType(control.feedbackType) || (controlType === "fader" ? "none" : "rgb"),
+    message: sanitizeMidiMessage(control.message),
+    colorTable: MIDI_COLOR_TABLE,
+  };
+}
+
+function midiLayoutTemplate(templateId = null) {
+  const normalizedId = MIDI_LAYOUT_TEMPLATE_ALIASES.get(templateId) || templateId;
+  const templates = allMidiLayoutTemplates();
+  return templates.find((template) => template.id === normalizedId)
+    || templates.find((template) => template.id === MIDI_LAYOUT_DEFAULT_TEMPLATE)
+    || templates[0];
+}
+
+function midiLayoutNumber(value, min, max, fallback) {
+  const number = Math.round(Number(value));
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(min, Math.min(max, number));
+}
+
+function midiLayoutCoordinate(value, fallback = 0) {
+  const number = Math.round(Number(value));
+  if (!Number.isFinite(number)) return Math.max(0, Math.round(Number(fallback) || 0));
+  return Math.max(0, Math.min(31, number));
+}
+
+function midiLayoutDimensions(source, template) {
+  const isCustom = Boolean(template.custom);
+  return {
+    rows: isCustom ? midiLayoutNumber(source.rows, 1, 16, template.rows) : template.rows,
+    cols: isCustom ? midiLayoutNumber(source.cols, 1, 16, template.cols) : template.cols,
+    buttons: isCustom ? midiLayoutNumber(source.buttons, 0, 48, template.buttons || 0) : (template.buttons || 0),
+    knobs: isCustom ? midiLayoutNumber(source.knobs, 0, 32, template.knobs || 0) : (template.knobs || 0),
+    faders: isCustom ? midiLayoutNumber(source.faders, 0, 32, template.faders || 0) : (template.faders || 0),
+  };
+}
+
+function midiLayoutSurfaceDimensions(source, template, dimensions) {
+  const isCustom = Boolean(template.custom);
+  const fallbackRows = midiLayoutNumber(template.surfaceRows, 1, 32, dimensions.rows);
+  const fallbackCols = midiLayoutNumber(template.surfaceCols, 1, 32, dimensions.cols);
+  return {
+    surfaceRows: isCustom ? midiLayoutNumber(source.surfaceRows ?? source.canvasRows, 1, 32, fallbackRows) : dimensions.rows,
+    surfaceCols: isCustom ? midiLayoutNumber(source.surfaceCols ?? source.canvasCols, 1, 32, fallbackCols) : dimensions.cols,
+  };
+}
+
+function sanitizeMidiLayout(layout) {
+  const source = layout && typeof layout === "object" ? layout : {};
+  const template = midiLayoutTemplate(source.template || source.templateId);
+  const dimensions = midiLayoutDimensions(source, template);
+  let surface = midiLayoutSurfaceDimensions(source, template, dimensions);
+  let sourceTemplate = String(source.sourceTemplate || template.sourceTemplate || source.baseTemplate || "");
+  let physicalLayout = String(source.physicalLayout || template.physicalLayout || "");
+  let layoutRepairVersion = String(source.layoutRepairVersion || template.layoutRepairVersion || "");
+  const savedControls = [
+    ...(Array.isArray(template.defaultControls) ? template.defaultControls : []),
+    ...(Array.isArray(source.controls) ? source.controls : []),
+    ...(Array.isArray(source.pads) ? source.pads : []),
+  ];
+  const controlsById = new Map(
+    savedControls
+      .filter((control) => control && control.id)
+      .map((control) => [String(control.id), control]),
+  );
+  const controls = [];
+  const padCount = dimensions.rows * dimensions.cols;
+  for (let index = 0; index < padCount; index += 1) {
+    const base = defaultMidiLayoutPad(index, {...template, ...dimensions}, "pad");
+    controls.push(sanitizeMidiLayoutPad(controlsById.get(base.id), base));
+  }
+  for (let index = 0; index < dimensions.buttons; index += 1) {
+    const base = defaultMidiLayoutPad(index, {...template, ...dimensions}, "button");
+    controls.push(sanitizeMidiLayoutPad(controlsById.get(base.id), base));
+  }
+  for (let index = 0; index < dimensions.knobs; index += 1) {
+    const base = defaultMidiLayoutPad(index, {...template, ...dimensions}, "knob");
+    controls.push(sanitizeMidiLayoutPad(controlsById.get(base.id), base));
+  }
+  for (let index = 0; index < dimensions.faders; index += 1) {
+    const base = defaultMidiLayoutPad(index, {...template, ...dimensions}, "fader");
+    controls.push(sanitizeMidiLayoutPad(controlsById.get(base.id), base));
+  }
+  const positionedControls = template.custom
+    ? normalizeMidiLayoutPositions(controls, {rows: surface.surfaceRows, cols: surface.surfaceCols})
+    : controls;
+  let finalControls = positionedControls;
+  if (template.custom && midiLayoutNeedsApcMiniMk2PositionRepair(source, dimensions, finalControls)) {
+    const apcTemplate = midiLayoutTemplate("akai_apc_mini_mk2");
+    finalControls = normalizeMidiLayoutPositions(
+      midiLayoutControlsForPositionEditor({pads: finalControls}, apcTemplate),
+      {rows: 10, cols: 9},
+    );
+    surface = {surfaceRows: 10, surfaceCols: 9};
+    sourceTemplate = "akai_apc_mini_mk2";
+    physicalLayout = "akai_apc_mini_mk2";
+    layoutRepairVersion = "apc_mini_mk2_positions_v2";
+  }
+  return {
+    template: template.id,
+    sourceTemplate,
+    physicalLayout,
+    layoutRepairVersion,
+    rows: dimensions.rows,
+    cols: dimensions.cols,
+    surfaceRows: surface.surfaceRows,
+    surfaceCols: surface.surfaceCols,
+    buttons: dimensions.buttons,
+    knobs: dimensions.knobs,
+    faders: dimensions.faders,
+    pads: finalControls,
+    controls: finalControls,
+  };
+}
+
+function normalizeMidiLayoutPositions(controls, dimensions) {
+  const sourceControls = Array.isArray(controls) ? controls : [];
+  const cols = Math.max(1, midiLayoutNumber(dimensions.cols, 1, 32, 8));
+  const minRows = Math.max(1, midiLayoutNumber(dimensions.rows, 1, 32, 8));
+  let rows = Math.max(
+    minRows,
+    Math.ceil(Math.max(1, sourceControls.length) / cols),
+    sourceControls.reduce((max, control) => {
+      const row = midiLayoutCoordinate(control.row, 0);
+      const col = midiLayoutCoordinate(control.col, 0);
+      return Math.max(max, Math.floor(((row * cols) + col) / cols) + 1);
+    }, 1),
+  );
+  const used = new Set();
+  const nextFreePosition = (preferredRow, preferredCol) => {
+    const preferredIndex = Math.max(0, (preferredRow * cols) + preferredCol);
+    const maxSlots = Math.max(rows * cols, sourceControls.length + preferredIndex + 1);
+    for (let index = preferredIndex; index < maxSlots; index += 1) {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      const key = `${row}:${col}`;
+      if (!used.has(key)) {
+        rows = Math.max(rows, row + 1);
+        used.add(key);
+        return {row, col};
+      }
+    }
+    const row = rows;
+    const col = 0;
+    rows += 1;
+    used.add(`${row}:${col}`);
+    return {row, col};
+  };
+  return sourceControls.map((control) => {
+    const desiredRow = midiLayoutCoordinate(control.row, 0);
+    const rawCol = midiLayoutCoordinate(control.col, 0);
+    const desiredRowWithOverflow = desiredRow + Math.floor(rawCol / cols);
+    const desiredCol = rawCol % cols;
+    const desiredKey = `${desiredRowWithOverflow}:${desiredCol}`;
+    if (!used.has(desiredKey)) {
+      used.add(desiredKey);
+      return {...control, row: desiredRowWithOverflow, col: desiredCol};
+    }
+    return {...control, ...nextFreePosition(desiredRowWithOverflow, desiredCol)};
+  });
+}
+
+function sanitizeMidiLayoutPad(item, base = null) {
+  const fallback = base || defaultMidiLayoutPad(0, midiLayoutTemplate());
+  const source = item && typeof item === "object" ? item : {};
+  const action = MIDI_LAYOUT_ACTIONS.has(source.action) ? source.action : "empty";
+  const playlistId = action === "start" ? String(source.playlistId || fallback.playlistId || "active") : "active";
+  const sourceType = source.controlType || source.type || fallback.controlType || "pad";
+  const controlType = MIDI_LAYOUT_CONTROL_TYPES.has(sourceType) ? sourceType : "pad";
+  const label = String(source.label || fallback.label || "Control").trim().slice(0, 28) || fallback.label || "Control";
+  const role = String(source.role || fallback.role || "").trim();
+  const lit = controlType === "fader"
+    ? false
+    : (source.lit === undefined ? fallback.lit !== false : source.lit !== false);
+  const fallbackFeedbackType = validMidiFeedbackType(fallback.feedbackType) || (lit ? "rgb" : "none");
+  const feedbackType = !lit || controlType === "fader"
+    ? "none"
+    : validMidiFeedbackType(source.feedbackType) || fallbackFeedbackType;
+  const feedbackSupported = controlType !== "fader" && lit && feedbackType !== "none";
+  const colorFeedbackSupported = feedbackSupported && feedbackType === "rgb";
+  const sourceMessage = sanitizeMidiMessage(source.message);
+  const fallbackMessage = sanitizeMidiMessage(fallback.message);
+  const message = shouldReplaceLegacyMidiLayoutMessage(sourceMessage, fallback, source, controlType)
+    ? fallbackMessage
+    : sourceMessage || fallbackMessage;
+  return {
+    id: String(source.id || fallback.id),
+    templateId: String(fallback.templateId || source.templateId || ""),
+    index: Number.isFinite(Number(fallback.index)) ? Number(fallback.index) : Number(source.index) || 0,
+    row: source.row === undefined || source.row === null
+      ? midiLayoutCoordinate(fallback.row, 0)
+      : midiLayoutCoordinate(source.row, fallback.row),
+    col: source.col === undefined || source.col === null
+      ? midiLayoutCoordinate(fallback.col, 0)
+      : midiLayoutCoordinate(source.col, fallback.col),
+    controlType,
+    type: controlType,
+    label,
+    role,
+    lit,
+    feedbackType,
+    action,
+    playlistId,
+    playlistName: action === "start" ? String(source.playlistName || "") : "Active playlist",
+    mode: action === "start" ? source.mode || null : null,
+    message,
+    colorOn: !colorFeedbackSupported || source.colorOn === undefined || source.colorOn === null
+      ? null
+      : normalizeMidiColorValue(source.colorOn, source.colorTable !== MIDI_COLOR_TABLE),
+    colorOff: !colorFeedbackSupported || source.colorOff === undefined || source.colorOff === null
+      ? null
+      : normalizeMidiColorValue(source.colorOff, source.colorTable !== MIDI_COLOR_TABLE),
+    feedbackMode: feedbackSupported ? validMidiFeedbackMode(source.feedbackMode) : "off",
+    ledProtocol: feedbackSupported ? validMidiLedProtocol(source.ledProtocol) : null,
+    colorTable: MIDI_COLOR_TABLE,
+  };
+}
+
+function shouldReplaceLegacyMidiLayoutMessage(message, fallback, source, controlType) {
+  if (!message || fallback.templateId !== "akai_apc_mini_mk2") return false;
+  const index = Number.isFinite(Number(fallback.index)) ? Number(fallback.index) : Number(source.index);
+  if (!Number.isFinite(index) || message.channel !== 1) return false;
+  if (controlType === "pad" && message.type === "note") {
+    return message.number === index && message.number !== fallback.message.number;
+  }
+  if (controlType === "button" && message.type === "note") {
+    return message.number === 64 + index && message.number !== fallback.message.number;
+  }
+  return false;
+}
+
+function defaultMidiLayoutPad(index, template = midiLayoutTemplate(), controlType = "pad") {
+  const type = MIDI_LAYOUT_CONTROL_TYPES.has(controlType) ? controlType : "pad";
+  const cols = Math.max(1, Number(template.cols) || 1);
+  const padRows = Math.max(1, Number(template.rows) || 1);
+  const buttonRows = Math.ceil(Number(template.buttons || 0) / cols);
+  const knobRows = Math.ceil(Number(template.knobs || 0) / cols);
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  const extraRowBase = type === "button"
+    ? padRows
+    : type === "knob"
+      ? padRows + buttonRows
+      : padRows + buttonRows + knobRows;
+  const idPrefix = type === "pad" ? "pad" : type;
+  const buttonDefinition = type === "button" && Array.isArray(template.buttonDefinitions)
+    ? template.buttonDefinitions[index]
+    : null;
+  const padLabel = type === "pad" && Array.isArray(template.padLabels) ? template.padLabels[index] : "";
+  const buttonLabel = Array.isArray(template.buttonLabels) ? template.buttonLabels[index] : "";
+  const label = type === "pad"
+    ? (padLabel || `${String.fromCharCode(65 + row)}${col + 1}`)
+    : type === "button"
+      ? (buttonDefinition?.label || buttonLabel || `B${index + 1}`)
+      : `${type === "knob" ? "K" : "F"}${index + 1}`;
+  const lit = type === "fader"
+    ? false
+    : buttonDefinition?.lit === undefined
+      ? true
+      : buttonDefinition.lit !== false;
+  const feedbackType = !lit || type === "fader"
+    ? "none"
+    : validMidiFeedbackType(buttonDefinition?.feedbackType) || "rgb";
+  return {
+    id: `${idPrefix}-${index + 1}`,
+    templateId: template.id,
+    index,
+    row: type === "pad" ? row : extraRowBase + Math.floor(index / cols),
+    col,
+    controlType: type,
+    type,
+    label,
+    role: buttonDefinition?.role || "",
+    lit,
+    feedbackType,
+    action: "empty",
+    playlistId: "active",
+    playlistName: "",
+    mode: null,
+    message: midiLayoutDefaultMessage(index, template, type),
+    colorOn: null,
+    colorOff: null,
+    feedbackMode: null,
+    ledProtocol: null,
+    colorTable: MIDI_COLOR_TABLE,
+  };
+}
+
+function midiLayoutDefaultMessage(index, template = midiLayoutTemplate(), controlType = "pad") {
+  if (controlType === "pad" && template.physicalLayout === "novation_launchpad_mini_mk3") {
+    const cols = Math.max(1, Number(template.cols) || 8);
+    const rows = Math.max(1, Number(template.rows) || 8);
+    const row = Math.floor(index / cols);
+    const col = index % cols;
+    return {
+      type: "note",
+      channel: 1,
+      number: clampMidiValue(((rows - row) * 10) + col + 1),
+      value: 127,
+    };
+  }
+  if (controlType === "knob") {
+    return {
+      type: "cc",
+      channel: 1,
+      number: clampMidiValue(Number(template.ccStart || 16) + index),
+      value: 0,
+    };
+  }
+  if (controlType === "fader") {
+    return {
+      type: "cc",
+      channel: 1,
+      number: clampMidiValue(Number(template.faderCcStart || template.ccStart || 48) + index),
+      value: 0,
+    };
+  }
+  if (controlType === "button") {
+    const buttonDefinition = Array.isArray(template.buttonDefinitions) ? template.buttonDefinitions[index] : null;
+    if (buttonDefinition && Number.isFinite(Number(buttonDefinition.number))) {
+      const messageType = buttonDefinition.messageType === "cc" ? "cc" : "note";
+      return {
+        type: messageType,
+        channel: Math.max(1, Math.min(16, Number(buttonDefinition.channel) || 1)),
+        number: clampMidiValue(buttonDefinition.number),
+        value: messageType === "note" ? 127 : 0,
+      };
+    }
+    const messageType = template.buttonMessageType === "note" ? "note" : "cc";
+    const numberStart = messageType === "note"
+      ? Number(template.buttonNoteStart || (Number(template.noteStart || 0) + (template.rows || 0) * (template.cols || 0)))
+      : Number(template.buttonCcStart || template.ccStart || 32);
+    return {
+      type: messageType,
+      channel: 1,
+      number: clampMidiValue(numberStart + index),
+      value: messageType === "note" ? 127 : 0,
+    };
+  }
+  const offset = midiLayoutPadMessageOffset(index, template);
+  return {
+    type: "note",
+    channel: 1,
+    number: clampMidiValue(Number(template.noteStart || 0) + offset),
+    value: 127,
+  };
+}
+
+function midiLayoutPadMessageOffset(index, template = midiLayoutTemplate()) {
+  const rows = Math.max(1, Number(template.rows) || 1);
+  const cols = Math.max(1, Number(template.cols) || 1);
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  if (template.padOrder === "bottom-to-top") {
+    return ((rows - 1 - row) * cols) + col;
+  }
+  if (template.noteDirection === "reverse") {
+    return rows * cols - 1 - index;
+  }
+  return index;
+}
+
+function midiLayoutNeedsApcMiniMk2PositionRepair(source, dimensions, controls) {
+  if (String(source?.layoutRepairVersion || "") === "apc_mini_mk2_positions_v2") return false;
+  if (dimensions.rows !== 8 || dimensions.cols !== 8 || dimensions.buttons < 17 || dimensions.faders < 9) return false;
+  const list = Array.isArray(controls) ? controls : [];
+  const pads = list.filter((control) => control.controlType === "pad");
+  const trackButtons = list.filter((control) => control.controlType === "button" && control.role === "track");
+  const sceneButtons = list.filter((control) => control.controlType === "button" && control.role === "scene");
+  const shiftButton = list.find((control) => control.controlType === "button" && control.role === "shift");
+  const faders = list.filter((control) => control.controlType === "fader");
+  if (pads.length < 64 || trackButtons.length < 8 || sceneButtons.length < 8 || !shiftButton || faders.length < 9) {
+    return false;
+  }
+  return faders.some((control) => midiLayoutCoordinate(control.row, 0) < 9)
+    || trackButtons.some((control) => midiLayoutCoordinate(control.row, 0) !== 8)
+    || sceneButtons.some((control) => midiLayoutCoordinate(control.col, 0) !== 8)
+    || midiLayoutCoordinate(shiftButton.row, 0) !== 8
+    || midiLayoutCoordinate(shiftButton.col, 0) !== 8;
+}
+
+function midiLayoutControlsForPositionEditor(layout, template) {
+  const controls = Array.isArray(layout?.pads) ? layout.pads : [];
+  if (template?.physicalLayout) {
+    return controls.map((control) => ({
+      ...control,
+      templateId: "custom",
+      ...midiLayoutPhysicalEditPosition(control, template),
+    }));
+  }
+  return controls.map((control) => ({
+    ...control,
+    templateId: "custom",
+    row: midiLayoutCoordinate(control.row, 0),
+    col: midiLayoutCoordinate(control.col, 0),
+  }));
+}
+
+function midiLayoutEditorSurfaceForControls(layout, template, controls) {
+  const safeControls = Array.isArray(controls) ? controls : [];
+  const maxRow = safeControls.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.row, 0)), 0);
+  const maxCol = safeControls.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.col, 0)), 0);
+  const physicalMinimum = midiLayoutPhysicalSurfaceMinimum(template, layout);
+  return {
+    surfaceRows: Math.max(1, Math.min(32, Math.max(physicalMinimum.rows, maxRow + 1))),
+    surfaceCols: Math.max(1, Math.min(32, Math.max(physicalMinimum.cols, maxCol + 1))),
+  };
+}
+
+function midiLayoutPhysicalSurfaceMinimum(template, layout = {}) {
+  switch (template?.physicalLayout) {
+    case "akai_apc_mini_mk2":
+      return {rows: 10, cols: 9};
+    case "novation_launchpad_mini_mk3":
+      return {rows: 9, cols: 9};
+    case "novation_launchkey_mini_mk3":
+      return {rows: 4, cols: 8};
+    case "akai_mpk_mini_mk3":
+      return {rows: 2, cols: 8};
+    case "arturia_minilab_3":
+      return {rows: 4, cols: 8};
+    case "generic_hybrid":
+      return {rows: 5, cols: 8};
+    default:
+      return {
+        rows: layout.surfaceRows || layout.rows || 8,
+        cols: layout.surfaceCols || layout.cols || 8,
+      };
+  }
+}
+
+function midiLayoutPhysicalEditPosition(control, template) {
+  switch (template?.physicalLayout) {
+    case "akai_apc_mini_mk2":
+      return midiLayoutApcMiniMk2EditPosition(control);
+    case "novation_launchpad_mini_mk3":
+      return midiLayoutLaunchpadMiniMk3EditPosition(control);
+    case "novation_launchkey_mini_mk3":
+      return midiLayoutLaunchkeyMiniMk3EditPosition(control);
+    case "akai_mpk_mini_mk3":
+      return midiLayoutMpkMiniMk3EditPosition(control);
+    case "arturia_minilab_3":
+      return midiLayoutMiniLab3EditPosition(control);
+    case "generic_hybrid":
+      return midiLayoutGenericHybridEditPosition(control);
+    default:
+      return {
+        row: midiLayoutCoordinate(control?.row, 0),
+        col: midiLayoutCoordinate(control?.col, 0),
+      };
+  }
+}
+
+function midiLayoutApcMiniMk2EditPosition(control) {
+  const index = Math.max(0, Math.round(Number(control?.index) || 0));
+  const role = String(control?.role || "");
+  if (control?.controlType === "pad") {
+    return {
+      row: Math.floor(index / 8),
+      col: index % 8,
+    };
+  }
+  if (control?.controlType === "button") {
+    if (role === "scene") {
+      return {
+        row: Math.max(0, Math.min(7, index - 8)),
+        col: 8,
+      };
+    }
+    if (role === "track") {
+      return {
+        row: 8,
+        col: Math.max(0, Math.min(7, index)),
+      };
+    }
+    if (role === "shift") {
+      return {
+        row: 8,
+        col: 8,
+      };
+    }
+    return {
+      row: 10 + Math.floor(index / 9),
+      col: index % 9,
+    };
+  }
+  if (control?.controlType === "fader") {
+    return {
+      row: 9,
+      col: Math.max(0, Math.min(8, index)),
+    };
+  }
+  if (control?.controlType === "knob") {
+    return {
+      row: 10 + Math.floor(index / 9),
+      col: index % 9,
+    };
+  }
+  return {
+    row: midiLayoutCoordinate(control?.row, 0),
+    col: midiLayoutCoordinate(control?.col, 0),
+  };
+}
+
+function midiLayoutLaunchpadMiniMk3EditPosition(control) {
+  const index = Math.max(0, Math.round(Number(control?.index) || 0));
+  if (control?.controlType === "pad") {
+    return {
+      row: Math.floor(index / 8) + 1,
+      col: index % 8,
+    };
+  }
+  if (control?.controlType === "button") {
+    if (control.role === "scene") {
+      return {
+        row: Math.max(1, Math.min(8, index - 8 + 1)),
+        col: 8,
+      };
+    }
+    return {
+      row: 0,
+      col: Math.max(0, Math.min(7, index)),
+    };
+  }
+  return {
+    row: midiLayoutCoordinate(control?.row, 0),
+    col: midiLayoutCoordinate(control?.col, 0),
+  };
+}
+
+function midiLayoutLaunchkeyMiniMk3EditPosition(control) {
+  const index = Math.max(0, Math.round(Number(control?.index) || 0));
+  if (control?.controlType === "knob") {
+    return {
+      row: 0,
+      col: index % 8,
+    };
+  }
+  if (control?.controlType === "button") {
+    return {
+      row: 1,
+      col: index % 8,
+    };
+  }
+  if (control?.controlType === "pad") {
+    return {
+      row: index < 8 ? 3 : 2,
+      col: index < 8 ? index : index - 8,
+    };
+  }
+  if (control?.controlType === "fader") {
+    return {
+      row: 1,
+      col: index % 8,
+    };
+  }
+  return {
+    row: midiLayoutCoordinate(control?.row, 0),
+    col: midiLayoutCoordinate(control?.col, 0),
+  };
+}
+
+function midiLayoutMpkMiniMk3EditPosition(control) {
+  const index = Math.max(0, Math.round(Number(control?.index) || 0));
+  if (control?.controlType === "pad") {
+    return {
+      row: index < 4 ? 1 : 0,
+      col: index < 4 ? index : index - 4,
+    };
+  }
+  if (control?.controlType === "knob") {
+    return {
+      row: Math.floor(index / 4),
+      col: 4 + (index % 4),
+    };
+  }
+  if (control?.controlType === "button") {
+    return {
+      row: 2 + Math.floor(index / 8),
+      col: index % 8,
+    };
+  }
+  if (control?.controlType === "fader") {
+    return {
+      row: 2 + Math.floor(index / 8),
+      col: index % 8,
+    };
+  }
+  return {
+    row: midiLayoutCoordinate(control?.row, 0),
+    col: midiLayoutCoordinate(control?.col, 0),
+  };
+}
+
+function midiLayoutMiniLab3EditPosition(control) {
+  const index = Math.max(0, Math.round(Number(control?.index) || 0));
+  if (control?.controlType === "knob") {
+    return {
+      row: 0,
+      col: index % 8,
+    };
+  }
+  if (control?.controlType === "fader") {
+    return {
+      row: 1,
+      col: index % 4,
+    };
+  }
+  if (control?.controlType === "button") {
+    return {
+      row: 1,
+      col: 4 + (index % 4),
+    };
+  }
+  if (control?.controlType === "pad") {
+    return {
+      row: index < 4 ? 3 : 2,
+      col: index < 4 ? index : index - 4,
+    };
+  }
+  return {
+    row: midiLayoutCoordinate(control?.row, 0),
+    col: midiLayoutCoordinate(control?.col, 0),
+  };
+}
+
+function midiLayoutGenericHybridEditPosition(control) {
+  const index = Math.max(0, Math.round(Number(control?.index) || 0));
+  if (control?.controlType === "pad") {
+    return {
+      row: Math.floor(index / 4),
+      col: index % 4,
+    };
+  }
+  if (control?.controlType === "knob") {
+    return {
+      row: Math.floor(index / 4),
+      col: 4 + (index % 4),
+    };
+  }
+  if (control?.controlType === "fader") {
+    return {
+      row: 2 + Math.floor(index / 4),
+      col: 4 + (index % 4),
+    };
+  }
+  if (control?.controlType === "button") {
+    return {
+      row: 4 + Math.floor(index / 8),
+      col: index % 8,
+    };
+  }
+  return {
+    row: midiLayoutCoordinate(control?.row, 0),
+    col: midiLayoutCoordinate(control?.col, 0),
+  };
+}
+
+function midiLayoutControlSupportsFeedback(control) {
+  if (!control) return true;
+  return control.controlType !== "fader" && control.lit !== false && midiLayoutControlFeedbackType(control) !== "none";
+}
+
+function midiLayoutControlSupportsColorFeedback(control) {
+  return midiLayoutControlSupportsFeedback(control) && midiLayoutControlFeedbackType(control) === "rgb";
+}
+
+function midiLayoutControlFeedbackType(control) {
+  if (!control || control.controlType === "fader" || control.lit === false) return "none";
+  return validMidiFeedbackType(control.feedbackType) || "rgb";
+}
+
+function midiLayoutTemplateLedProtocol(template) {
+  return validMidiLedProtocol(template && template.ledProtocol) || null;
+}
+
+function midiLayoutFeedbackPatch(control, template, colorOn, colorOff, feedbackMode = "latch") {
+  if (!midiLayoutControlSupportsFeedback(control)) {
+    return {
+      colorOn: null,
+      colorOff: null,
+      feedbackMode: "off",
+      ledProtocol: null,
+      feedbackType: "none",
+    };
+  }
+  const feedbackType = midiLayoutControlFeedbackType(control);
+  return {
+    colorOn: feedbackType === "rgb" ? clampMidiValue(colorOn) : null,
+    colorOff: feedbackType === "rgb" ? clampMidiValue(colorOff) : null,
+    feedbackMode,
+    ledProtocol: midiLayoutTemplateLedProtocol(template),
+    feedbackType,
+  };
+}
+
+function midiActionFeedbackDefaults(action, source = {}, options = {}) {
+  const defaults = MIDI_ACTION_FEEDBACK_DEFAULTS[action] || {};
+  const preserveExisting = options.preserveExisting !== false;
+  const colorOn = defaults.colorOn !== undefined
+    ? defaults.colorOn
+    : preserveExisting && source.colorOn !== undefined && source.colorOn !== null
+      ? source.colorOn
+      : state.midi.controller.colorOn;
+  const colorOff = defaults.colorOff !== undefined
+    ? defaults.colorOff
+    : preserveExisting && source.colorOff !== undefined && source.colorOff !== null
+      ? source.colorOff
+      : state.midi.controller.colorOff;
+  const feedbackMode = defaults.feedbackMode
+    || (preserveExisting ? validMidiFeedbackMode(source.feedbackMode) : null)
+    || state.midi.controller.feedbackMode
+    || DEFAULT_MIDI_CONTROLLER.feedbackMode;
+  return {
+    colorOn: clampMidiValue(colorOn),
+    colorOff: clampMidiValue(colorOff),
+    feedbackMode,
+    ledProtocol: validMidiLedProtocol(source.ledProtocol)
+      || state.midi.controller.ledProtocol
+      || DEFAULT_MIDI_CONTROLLER.ledProtocol,
+  };
+}
+
+function midiActionDefaultColor(action, key) {
+  const defaults = MIDI_ACTION_FEEDBACK_DEFAULTS[action];
+  if (!defaults || defaults[key] === undefined) return null;
+  return clampMidiValue(defaults[key]);
+}
+
+function setMidiColorSelectValue(select, value) {
+  if (!select) return;
+  const nextValue = String(clampMidiValue(value));
+  if (![...select.options].some((item) => item.value === nextValue)) {
+    renderMidiColorSelect(select, nextValue);
+    return;
+  }
+  select.value = nextValue;
+  updateMidiColorPicker(select, true);
+  updateMidiColorPreview(select);
+}
+
+function applyMidiActionFeedbackToEditor(scope, action, source) {
+  const isLayoutPad = scope === "midiLayoutPad";
+  const feedbackSupported = isLayoutPad
+    ? midiLayoutControlSupportsFeedback(source)
+    : midiMappingSupportsFeedback(source);
+  const colorFeedbackSupported = isLayoutPad
+    ? midiLayoutControlSupportsColorFeedback(source)
+    : midiMappingSupportsColorFeedback(source);
+  const fields = isLayoutPad
+    ? {
+      colorOn: els.midiLayoutPadColorOnSelect,
+      colorOff: els.midiLayoutPadColorOffSelect,
+      feedbackMode: els.midiLayoutPadFeedbackModeSelect,
+      ledProtocol: els.midiLayoutPadLedProtocolSelect,
+    }
+    : {
+      colorOn: els.midiEditColorOnSelect,
+      colorOff: els.midiEditColorOffSelect,
+      feedbackMode: els.midiEditFeedbackModeSelect,
+      ledProtocol: els.midiEditLedProtocolSelect,
+    };
+  if (!feedbackSupported) return;
+  const defaults = midiActionFeedbackDefaults(action, source, {preserveExisting: false});
+  if (colorFeedbackSupported) {
+    setMidiColorSelectValue(fields.colorOn, defaults.colorOn);
+    setMidiColorSelectValue(fields.colorOff, defaults.colorOff);
+  }
+  if (fields.feedbackMode) fields.feedbackMode.value = defaults.feedbackMode;
+  if (fields.ledProtocol) fields.ledProtocol.value = defaults.ledProtocol;
+}
+
+function setMidiLayoutTemplate(templateId) {
+  const previous = sanitizeMidiLayout(state.midi.layout);
+  const nextTemplate = midiLayoutTemplate(templateId);
+  const keepCurrentShape = nextTemplate.id === "custom";
+  clearMidiLayoutSelection({render: false});
+  state.midi.layoutPositionMode = false;
+  state.midi.layoutDragId = "";
+  state.midi.layoutDragIds = [];
+  state.midi.layout = sanitizeMidiLayout({
+    template: nextTemplate.id,
+    rows: keepCurrentShape ? previous.rows : nextTemplate.rows,
+    cols: keepCurrentShape ? previous.cols : nextTemplate.cols,
+    surfaceRows: keepCurrentShape ? (nextTemplate.surfaceRows || 16) : nextTemplate.surfaceRows,
+    surfaceCols: keepCurrentShape ? (nextTemplate.surfaceCols || 16) : nextTemplate.surfaceCols,
+    buttons: keepCurrentShape ? previous.buttons : nextTemplate.buttons,
+    knobs: keepCurrentShape ? previous.knobs : nextTemplate.knobs,
+    faders: keepCurrentShape ? previous.faders : nextTemplate.faders,
+    pads: keepCurrentShape ? previous.pads : (nextTemplate.defaultControls || []),
+  });
+  saveMidiLayout();
+  syncMidiLayoutMappings();
+  renderMidiLayoutDesigner();
+}
+
+function midiLayoutPad(padId) {
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  state.midi.layout = layout;
+  return layout.pads.find((pad) => pad.id === padId) || null;
+}
+
+function setMidiLayoutPad(nextPad, options = {}) {
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const index = layout.pads.findIndex((pad) => pad.id === nextPad.id);
+  if (index < 0) return null;
+  layout.pads[index] = sanitizeMidiLayoutPad(nextPad, layout.pads[index]);
+  state.midi.layout = layout;
+  saveMidiLayout();
+  persistActiveMidiLayoutTemplate();
+  if (options.syncMapping !== false) syncMidiLayoutPadMapping(layout.pads[index]);
+  return layout.pads[index];
+}
+
+function clearMidiLayoutPad(padId, options = {}) {
+  const pad = midiLayoutPad(padId);
+  if (!pad) return;
+  setMidiLayoutPad({
+    ...pad,
+    action: "empty",
+    playlistId: "active",
+    playlistName: "",
+    mode: null,
+    message: options.keepMessage ? pad.message : null,
+    colorOn: null,
+    colorOff: null,
+    feedbackMode: null,
+    ledProtocol: null,
+  });
+}
+
+function midiLayoutPadToMapping(pad) {
+  if (!pad || !MIDI_MAPPING_ACTIONS.has(pad.action) || !pad.message) return null;
+  const action = pad.action;
+  const playlistId = action === "start" ? (pad.playlistId || "active") : "active";
+  const playlist = state.ledfxLibrary.playlists.find((item) => item.id === playlistId);
+  const feedbackSupported = midiLayoutControlSupportsFeedback(pad);
+  return {
+    id: midiMappingId(action, playlistId, pad.message),
+    action,
+    playlistId,
+    playlistName: action === "start" ? (playlist?.name || pad.playlistName || "Active playlist") : "Active playlist",
+    mode: action === "start" ? (playlist?.mode || pad.mode || null) : null,
+    message: sanitizeMidiMessage(pad.message),
+    colorOn: feedbackSupported && pad.colorOn !== undefined && pad.colorOn !== null ? clampMidiValue(pad.colorOn) : null,
+    colorOff: feedbackSupported && pad.colorOff !== undefined && pad.colorOff !== null ? clampMidiValue(pad.colorOff) : null,
+    feedbackMode: feedbackSupported ? validMidiFeedbackMode(pad.feedbackMode) : "off",
+    ledProtocol: feedbackSupported ? validMidiLedProtocol(pad.ledProtocol) : null,
+    colorTable: MIDI_COLOR_TABLE,
+    layoutPadId: pad.id,
+    layoutControlType: pad.controlType,
+    supportsFeedback: feedbackSupported,
+    feedbackType: midiLayoutControlFeedbackType(pad),
+  };
+}
+
+function syncMidiLayoutPadMapping(pad) {
+  const previous = state.midi.mappings.filter((mapping) => mapping.layoutPadId === pad.id);
+  previous.forEach((mapping) => sendMidiFeedback(mapping, false));
+  state.midi.mappings = state.midi.mappings.filter((mapping) => mapping.layoutPadId !== pad.id);
+  const mapping = midiLayoutPadToMapping(pad);
+  if (mapping) {
+    removeMidiMessageConflicts(mapping.message, {keepMappingId: mapping.id, keepLayoutPadId: pad.id});
+    state.midi.mappings.push(mapping);
+  }
+  saveMidiMappings();
+  refreshMidiFeedback();
+}
+
+function syncMidiLayoutMappings() {
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  state.midi.layout = layout;
+  state.midi.mappings
+    .filter((mapping) => mapping.layoutPadId && !layout.pads.some((pad) => pad.id === mapping.layoutPadId))
+    .forEach((mapping) => sendMidiFeedback(mapping, false));
+  state.midi.mappings = state.midi.mappings.filter(
+    (mapping) => !mapping.layoutPadId || layout.pads.some((pad) => pad.id === mapping.layoutPadId),
+  );
+  [...layout.pads].forEach((pad) => {
+    const current = midiLayoutPad(pad.id);
+    if (current) syncMidiLayoutPadMapping(current);
+  });
+  saveMidiMappings();
+  refreshMidiFeedback();
+}
+
+function syncMidiLayoutPadFromMapping(mapping) {
+  if (!mapping || !mapping.layoutPadId) return;
+  const pad = midiLayoutPad(mapping.layoutPadId);
+  if (!pad) return;
+  setMidiLayoutPad({
+    ...pad,
+    action: mapping.action,
+    playlistId: mapping.playlistId,
+    playlistName: mapping.playlistName,
+    mode: mapping.mode,
+    message: mapping.message,
+    colorOn: mapping.colorOn,
+    colorOff: mapping.colorOff,
+    feedbackMode: mapping.feedbackMode,
+    ledProtocol: mapping.ledProtocol,
+    feedbackType: mapping.feedbackType,
+  }, {syncMapping: false});
+}
+
+function attachMidiMappingToLayoutControl(mapping) {
+  const cleanMapping = sanitizeMidiMapping(mapping);
+  if (!cleanMapping) return null;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  state.midi.layout = layout;
+  const linked = cleanMapping.layoutPadId
+    ? layout.pads.find((pad) => pad.id === cleanMapping.layoutPadId)
+    : layout.pads.find((pad) => midiMessagesMatch(pad.message, cleanMapping.message));
+  if (!linked) return cleanMapping;
+  return sanitizeMidiMapping({
+    ...cleanMapping,
+    layoutPadId: linked.id,
+    layoutControlType: linked.controlType,
+    supportsFeedback: midiLayoutControlSupportsFeedback(linked),
+    feedbackType: midiLayoutControlFeedbackType(linked),
+  });
+}
+
+function removeMidiMessageConflicts(message, options = {}) {
+  const cleanMessage = sanitizeMidiMessage(message);
+  if (!cleanMessage) return;
+  const keepMappingId = options.keepMappingId || "";
+  const keepLayoutPadId = options.keepLayoutPadId || "";
+  const conflicts = state.midi.mappings.filter((mapping) => (
+    mapping.id !== keepMappingId &&
+    (!keepLayoutPadId || mapping.layoutPadId !== keepLayoutPadId) &&
+    midiMessagesMatch(mapping.message, cleanMessage)
+  ));
+  conflicts.forEach((mapping) => sendMidiFeedback(mapping, false));
+  if (conflicts.length) {
+    const conflictIds = new Set(conflicts.map((mapping) => mapping.id));
+    state.midi.mappings = state.midi.mappings.filter((mapping) => !conflictIds.has(mapping.id));
+  }
+  const conflictLayoutIds = new Set(conflicts.map((mapping) => mapping.layoutPadId).filter(Boolean));
+  state.midi.layout = sanitizeMidiLayout(state.midi.layout);
+  let layoutChanged = false;
+  state.midi.layout.pads = state.midi.layout.pads.map((pad) => {
+    const isSameMessage = midiMessagesMatch(pad.message, cleanMessage);
+    if (
+      pad.id !== keepLayoutPadId &&
+      pad.action !== "empty" &&
+      (conflictLayoutIds.has(pad.id) || isSameMessage)
+    ) {
+      layoutChanged = true;
+      return sanitizeMidiLayoutPad({
+        ...pad,
+        action: "empty",
+        playlistId: "active",
+        playlistName: "",
+        mode: null,
+        colorOn: null,
+        colorOff: null,
+        feedbackMode: null,
+        ledProtocol: null,
+      }, pad);
+    }
+    return pad;
+  });
+  state.midi.layout.controls = state.midi.layout.pads;
+  if (layoutChanged) saveMidiLayout();
+  if (conflicts.length) saveMidiMappings();
+}
+
+function renderMidiLayoutDesigner() {
+  if (!els.midiLayoutView) return;
+  const previousRepairVersion = state.midi.layout?.layoutRepairVersion || "";
+  state.midi.layout = sanitizeMidiLayout(state.midi.layout);
+  if ((state.midi.layout?.layoutRepairVersion || "") !== previousRepairVersion) {
+    saveMidiLayout();
+  }
+  pruneMidiLayoutSelection(state.midi.layout);
+  renderMidiLayoutTemplateSelect();
+  renderMidiLayoutCustomEditor();
+  renderMidiLayoutPortSelects();
+  renderMidiLayoutGrid();
+  renderMidiLayoutSummary();
+  renderMidiLayoutZoomControls();
+}
+
+function renderMidiLayoutTemplateSelect() {
+  if (!els.midiLayoutTemplateSelect) return;
+  const current = state.midi.layout.template;
+  els.midiLayoutTemplateSelect.innerHTML = "";
+  const builtInGroup = document.createElement("optgroup");
+  builtInGroup.label = "Built-in controllers";
+  MIDI_LAYOUT_TEMPLATES.forEach((template) => {
+    const node = option(template.label, template.id);
+    node.title = template.description;
+    builtInGroup.append(node);
+  });
+  els.midiLayoutTemplateSelect.append(builtInGroup);
+  const customTemplates = loadCustomMidiLayoutTemplates();
+  if (customTemplates.length) {
+    const customGroup = document.createElement("optgroup");
+    customGroup.label = "Saved custom models";
+    customTemplates.forEach((template) => {
+      const node = option(template.label, template.id);
+      node.title = template.description;
+      customGroup.append(node);
+    });
+    els.midiLayoutTemplateSelect.append(customGroup);
+  }
+  els.midiLayoutTemplateSelect.value = allMidiLayoutTemplates().some((template) => template.id === current)
+    ? current
+    : MIDI_LAYOUT_DEFAULT_TEMPLATE;
+}
+
+function renderMidiLayoutCustomEditor() {
+  if (!els.midiLayoutCustomEditor) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const template = midiLayoutTemplate(layout.template);
+  const isCustom = Boolean(template.custom);
+  els.midiLayoutCustomEditor.hidden = !isCustom;
+  if (els.midiLayoutCustomNameInput && !document.activeElement?.isSameNode(els.midiLayoutCustomNameInput)) {
+    els.midiLayoutCustomNameInput.value = template.id !== "custom"
+      ? template.label
+      : defaultMidiCustomModelName(layout);
+  }
+  syncMidiLayoutGridSizeSelect(layout);
+  if (els.midiLayoutRowsInput) els.midiLayoutRowsInput.value = layout.rows;
+  if (els.midiLayoutColsInput) els.midiLayoutColsInput.value = layout.cols;
+  if (els.midiLayoutButtonsInput) els.midiLayoutButtonsInput.value = layout.buttons || 0;
+  if (els.midiLayoutKnobsInput) els.midiLayoutKnobsInput.value = layout.knobs;
+  if (els.midiLayoutFadersInput) els.midiLayoutFadersInput.value = layout.faders;
+}
+
+function midiLayoutGridSizeValue(layout) {
+  const surfaceRows = midiLayoutNumber(layout && layout.surfaceRows, 1, 32, layout?.rows || 8);
+  const surfaceCols = midiLayoutNumber(layout && layout.surfaceCols, 1, 32, layout?.cols || 8);
+  if (surfaceRows === surfaceCols && MIDI_LAYOUT_GRID_SIZE_OPTIONS.includes(surfaceRows)) {
+    return String(surfaceRows);
+  }
+  return "custom";
+}
+
+function syncMidiLayoutGridSizeSelect(layout) {
+  if (!els.midiLayoutGridSizeSelect) return;
+  els.midiLayoutGridSizeSelect.value = midiLayoutGridSizeValue(layout);
+}
+
+function selectedMidiLayoutSurfaceDimensions(current) {
+  const fallbackRows = midiLayoutNumber(current && current.surfaceRows, 1, 32, current?.rows || 8);
+  const fallbackCols = midiLayoutNumber(current && current.surfaceCols, 1, 32, current?.cols || 8);
+  const selected = Number(els.midiLayoutGridSizeSelect?.value);
+  if (MIDI_LAYOUT_GRID_SIZE_OPTIONS.includes(selected)) {
+    return {surfaceRows: selected, surfaceCols: selected};
+  }
+  return {surfaceRows: fallbackRows, surfaceCols: fallbackCols};
+}
+
+function applyMidiLayoutGridSizePreset() {
+  const current = sanitizeMidiLayout(state.midi.layout);
+  const selected = Number(els.midiLayoutGridSizeSelect?.value);
+  if (!MIDI_LAYOUT_GRID_SIZE_OPTIONS.includes(selected)) {
+    syncMidiLayoutGridSizeSelect(current);
+    return;
+  }
+  state.midi.layout = sanitizeMidiLayout({
+    ...current,
+    template: "custom",
+    surfaceRows: selected,
+    surfaceCols: selected,
+    pads: current.pads,
+  });
+  saveMidiLayout();
+  persistActiveMidiLayoutTemplate();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  showToast(`Position grid set to ${selected}x${selected}.`);
+}
+
+function renderMidiLayoutPortSelects() {
+  renderMidiLayoutPortSelect(els.midiLayoutInputSelect, state.midi.inputs, state.midi.selectedInputId, "No MIDI input connected");
+  renderMidiLayoutPortSelect(els.midiLayoutOutputSelect, state.midi.outputs, state.midi.selectedOutputId, "No MIDI output connected");
+  if (!els.midiLayoutStatus) return;
+  const input = state.midi.inputs.find((item) => item.id === state.midi.selectedInputId);
+  const output = state.midi.outputs.find((item) => item.id === state.midi.selectedOutputId);
+  if (!state.midi.access) {
+    els.midiLayoutStatus.textContent = "MIDI not connected. Use Connect MIDI, then click a pad and Learn if needed.";
+  } else {
+    els.midiLayoutStatus.textContent = `Input: ${input?.name || "none"} | Output: ${output?.name || "none"}${state.midi.learn ? " | Learning..." : ""}`;
+  }
+}
+
+function renderMidiLayoutPortSelect(select, ports, currentId, emptyLabel) {
+  if (!select) return;
+  const current = currentId || select.value;
+  select.innerHTML = "";
+  if (!ports.length) {
+    select.append(option(emptyLabel, ""));
+    select.disabled = true;
+    return;
+  }
+  ports.forEach((port) => {
+    const direction = select === els.midiLayoutOutputSelect ? "output" : "input";
+    select.append(option(midiPortOptionLabel(port, direction), port.id));
+  });
+  select.disabled = false;
+  select.value = ports.some((port) => port.id === current) ? current : ports[0].id;
+}
+
+function midiPortOptionLabel(port, direction = "input") {
+  const name = port?.name || port?.id || "MIDI port";
+  const normalized = name.toLowerCase();
+  if (normalized.includes("note")) {
+    return `${name} - pads/buttons${direction === "output" ? "/LEDs" : ""}`;
+  }
+  if (normalized.includes("control")) {
+    return `${name} - knobs/faders/CC`;
+  }
+  return name;
+}
+
+function midiLayoutSelectionSet() {
+  if (!(state.midi.layoutSelectedIds instanceof Set)) {
+    state.midi.layoutSelectedIds = new Set();
+  }
+  return state.midi.layoutSelectedIds;
+}
+
+function pruneMidiLayoutSelection(layout) {
+  const validIds = new Set((layout?.pads || []).map((pad) => pad.id));
+  state.midi.layoutSelectedIds = new Set([...midiLayoutSelectionSet()].filter((id) => validIds.has(id)));
+}
+
+function toggleMidiLayoutControlSelection(controlId) {
+  if (!state.midi.layoutPositionMode || !controlId) return;
+  if (Date.now() < (state.midi.layoutSuppressClickUntil || 0)) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  if (!layout.pads.some((control) => control.id === controlId)) return;
+  const selected = new Set(midiLayoutSelectionSet());
+  if (selected.has(controlId)) {
+    selected.delete(controlId);
+  } else {
+    selected.add(controlId);
+  }
+  state.midi.layoutSelectedIds = selected;
+  renderMidiLayoutGrid();
+  renderMidiLayoutSummary();
+}
+
+function clearMidiLayoutSelection(options = {}) {
+  state.midi.layoutSelectedIds = new Set();
+  state.midi.layoutDragIds = [];
+  state.midi.layoutDragId = "";
+  if (options.render !== false) {
+    renderMidiLayoutGrid();
+    renderMidiLayoutSummary();
+  }
+}
+
+function changeMidiLayoutZoom(delta) {
+  state.midi.layoutZoom = normalizeMidiLayoutZoom((state.midi.layoutZoom || 1) + delta);
+  saveMidiLayoutZoom();
+  renderMidiLayoutGrid();
+  renderMidiLayoutZoomControls();
+}
+
+function renderMidiLayoutZoomControls() {
+  const zoom = normalizeMidiLayoutZoom(state.midi.layoutZoom);
+  if (els.midiLayoutZoomValue) els.midiLayoutZoomValue.textContent = `${Math.round(zoom * 100)}%`;
+  if (els.midiLayoutZoomOutButton) els.midiLayoutZoomOutButton.disabled = zoom <= MIDI_LAYOUT_ZOOM_MIN;
+  if (els.midiLayoutZoomInButton) els.midiLayoutZoomInButton.disabled = zoom >= MIDI_LAYOUT_ZOOM_MAX;
+  if (els.midiLayoutClearSelectionButton) {
+    const selectedCount = midiLayoutSelectionSet().size;
+    els.midiLayoutClearSelectionButton.hidden = !state.midi.layoutPositionMode || selectedCount === 0;
+    els.midiLayoutClearSelectionButton.textContent = selectedCount > 1
+      ? `Clear ${selectedCount} Selected`
+      : "Clear Selection";
+  }
+}
+
+function renderMidiLayoutGrid() {
+  if (!els.midiLayoutGrid) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const template = midiLayoutTemplate(layout.template);
+  els.midiLayoutGrid.style.setProperty("--midi-layout-cols", String(layout.cols));
+  els.midiLayoutGrid.style.setProperty("--midi-layout-zoom", String(normalizeMidiLayoutZoom(state.midi.layoutZoom)));
+  els.midiLayoutGrid.innerHTML = "";
+  const pads = layout.pads.filter((control) => control.controlType === "pad");
+  const buttons = layout.pads.filter((control) => control.controlType === "button");
+  const knobs = layout.pads.filter((control) => control.controlType === "knob");
+  const faders = layout.pads.filter((control) => control.controlType === "fader");
+  if (template.custom) {
+    els.midiLayoutGrid.append(renderMidiCustomLayoutSurface(layout));
+    return;
+  }
+  if (template.physicalLayout === "akai_apc_mini_mk2") {
+    els.midiLayoutGrid.append(renderApcMiniMk2Layout(layout, pads, buttons, faders));
+    if (knobs.length) {
+      const extras = document.createElement("div");
+      extras.className = "midi-layout-extra-controls";
+      extras.append(midiLayoutControlBank("Knobs", knobs));
+      els.midiLayoutGrid.append(extras);
+    }
+    return;
+  }
+  if (template.physicalLayout) {
+    els.midiLayoutGrid.append(renderMidiPhysicalLayoutSurface(layout, template));
+    return;
+  }
+  const padMatrix = document.createElement("div");
+  padMatrix.className = "midi-layout-pad-matrix";
+  padMatrix.style.setProperty("--midi-layout-cols", String(layout.cols));
+  pads.forEach((pad) => padMatrix.append(midiLayoutControlButton(pad)));
+  els.midiLayoutGrid.append(padMatrix);
+  if (buttons.length || knobs.length || faders.length) {
+    const extras = document.createElement("div");
+    extras.className = "midi-layout-extra-controls";
+    if (buttons.length) extras.append(midiLayoutControlBank("Buttons", buttons));
+    if (knobs.length) extras.append(midiLayoutControlBank("Knobs", knobs));
+    if (faders.length) extras.append(midiLayoutControlBank("Faders", faders));
+    els.midiLayoutGrid.append(extras);
+  }
+}
+
+function renderMidiPhysicalLayoutSurface(layout, template) {
+  const controls = midiLayoutControlsForPositionEditor(layout, template);
+  const surface = midiLayoutEditorSurfaceForControls(layout, template, controls);
+  const positionedControls = normalizeMidiLayoutPositions(controls, {
+    rows: surface.surfaceRows,
+    cols: surface.surfaceCols,
+  });
+  return renderMidiCustomLayoutSurface({
+    ...layout,
+    surfaceRows: surface.surfaceRows,
+    surfaceCols: surface.surfaceCols,
+    pads: positionedControls,
+    controls: positionedControls,
+  });
+}
+
+function renderMidiCustomLayoutSurface(layout) {
+  const surface = document.createElement("div");
+  surface.className = "midi-layout-free-surface";
+  surface.classList.toggle("is-editing", state.midi.layoutPositionMode);
+  const sortedControls = [...layout.pads].sort(midiLayoutPositionSort);
+  const maxControlRow = sortedControls.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.row, 0)), 0);
+  const maxControlCol = sortedControls.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.col, 0)), 0);
+  const rows = Math.max(layout.surfaceRows || layout.rows, maxControlRow + 1);
+  const cols = Math.max(layout.surfaceCols || layout.cols, maxControlCol + 1);
+  const controlsByCell = new Map(sortedControls.map((control) => [
+    `${midiLayoutCoordinate(control.row, 0)}:${midiLayoutCoordinate(control.col, 0)}`,
+    control,
+  ]));
+  surface.style.setProperty("--midi-layout-cols", String(cols));
+  surface.style.setProperty("--midi-layout-rows", String(rows));
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const cell = document.createElement("div");
+      cell.className = "midi-layout-grid-cell";
+      cell.dataset.row = String(row);
+      cell.dataset.col = String(col);
+      cell.addEventListener("dragover", handleMidiLayoutDragOver);
+      cell.addEventListener("drop", handleMidiLayoutDrop);
+      const control = controlsByCell.get(`${row}:${col}`);
+      if (control) {
+        cell.classList.add("has-control");
+        cell.classList.toggle("has-selected-control", midiLayoutSelectionSet().has(control.id));
+        cell.append(midiLayoutControlButton(control, {
+          draggable: state.midi.layoutPositionMode,
+        }));
+      }
+      surface.append(cell);
+    }
+  }
+  return surface;
+}
+
+function midiLayoutPositionSort(a, b) {
+  return (midiLayoutCoordinate(a.row, 0) - midiLayoutCoordinate(b.row, 0))
+    || (midiLayoutCoordinate(a.col, 0) - midiLayoutCoordinate(b.col, 0))
+    || ((a.controlType || "").localeCompare(b.controlType || ""))
+    || ((Number(a.index) || 0) - (Number(b.index) || 0));
+}
+
+function renderApcMiniMk2Layout(layout, pads, buttons, faders) {
+  const surface = document.createElement("div");
+  surface.className = "midi-layout-apc";
+  surface.style.setProperty("--midi-layout-cols", String(layout.cols));
+
+  const padMatrix = document.createElement("div");
+  padMatrix.className = "midi-layout-pad-matrix midi-layout-apc-pads";
+  padMatrix.style.setProperty("--midi-layout-cols", String(layout.cols));
+  pads.forEach((pad) => padMatrix.append(midiLayoutControlButton(pad)));
+
+  const sceneButtons = buttons.filter((button) => button.role === "scene");
+  const trackButtons = buttons.filter((button) => button.role === "track");
+  const shiftButton = buttons.find((button) => button.role === "shift");
+  const otherButtons = buttons.filter((button) => !["scene", "track", "shift"].includes(button.role));
+
+  const top = document.createElement("div");
+  top.className = "midi-layout-apc-top";
+  top.append(padMatrix);
+  if (sceneButtons.length) {
+    const side = document.createElement("div");
+    side.className = "midi-layout-apc-scene-buttons";
+    sceneButtons.forEach((button) => side.append(midiLayoutControlButton(button)));
+    top.append(side);
+  }
+  surface.append(top);
+
+  const trackRow = document.createElement("div");
+  trackRow.className = "midi-layout-apc-track-row";
+  trackButtons.forEach((button) => trackRow.append(midiLayoutControlButton(button)));
+  if (shiftButton) trackRow.append(midiLayoutControlButton(shiftButton));
+  surface.append(trackRow);
+
+  if (faders.length) {
+    const faderRow = document.createElement("div");
+    faderRow.className = "midi-layout-apc-fader-row";
+    faders.forEach((fader) => faderRow.append(midiLayoutControlButton(fader)));
+    surface.append(faderRow);
+  }
+
+  if (otherButtons.length) {
+    surface.append(midiLayoutControlBank("Buttons", otherButtons));
+  }
+  return surface;
+}
+
+function midiLayoutControlBank(title, controls) {
+  const bank = document.createElement("section");
+  bank.className = `midi-layout-control-bank is-${controls[0]?.controlType || "pad"}`;
+  const label = document.createElement("strong");
+  label.textContent = title;
+  const grid = document.createElement("div");
+  grid.className = "midi-layout-control-row";
+  controls.forEach((control) => grid.append(midiLayoutControlButton(control)));
+  bank.append(label, grid);
+  return bank;
+}
+
+function midiLayoutControlButton(pad, options = {}) {
+  const mapped = pad.action !== "empty";
+  const feedbackSupported = midiLayoutControlSupportsFeedback(pad);
+  const colorFeedbackSupported = midiLayoutControlSupportsColorFeedback(pad);
+  const touched = midiLayoutPadWasTouched(pad);
+  const title = `${pad.label} - ${mapped ? midiLayoutPadTitle(pad) : `Empty ${midiLayoutControlTypeLabel(pad.controlType).toLowerCase()}`}`;
+  const tile = document.createElement("div");
+  tile.className = `midi-layout-control-tile is-${pad.controlType || "pad"}`;
+  tile.dataset.padId = pad.id;
+  tile.dataset.row = String(midiLayoutCoordinate(pad.row, 0));
+  tile.dataset.col = String(midiLayoutCoordinate(pad.col, 0));
+  tile.classList.toggle("is-mapped", mapped);
+  tile.classList.toggle("is-active", midiLayoutPadIsActive(pad));
+  tile.classList.toggle("is-touched", touched);
+  tile.classList.toggle("is-unlit", !feedbackSupported);
+  tile.classList.toggle("is-selected", midiLayoutSelectionSet().has(pad.id));
+  if (options.draggable) {
+    tile.draggable = true;
+    tile.classList.add("is-draggable");
+    tile.addEventListener("dragstart", (event) => {
+      if (!midiLayoutSelectionSet().has(pad.id)) {
+        state.midi.layoutSelectedIds = new Set([pad.id]);
+      }
+      state.midi.layoutDragId = pad.id;
+      state.midi.layoutDragIds = [...midiLayoutSelectionSet()];
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", pad.id);
+      requestAnimationFrame(() => {
+        tile.classList.add("is-dragging");
+        tile.classList.add("is-selected");
+      });
+    });
+    tile.addEventListener("dragover", handleMidiLayoutDragOver);
+    tile.addEventListener("drop", handleMidiLayoutDrop);
+    tile.addEventListener("dragend", () => {
+      state.midi.layoutDragId = "";
+      state.midi.layoutDragIds = [];
+      state.midi.layoutSuppressClickUntil = Date.now() + 250;
+      tile.classList.remove("is-dragging");
+    });
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.draggable = false;
+  button.className = `midi-layout-pad midi-layout-${pad.controlType || "pad"}`;
+  button.classList.toggle("is-mapped", mapped);
+  button.classList.toggle("is-active", midiLayoutPadIsActive(pad));
+  button.classList.toggle("is-touched", touched);
+  button.classList.toggle("is-unlit", !feedbackSupported);
+  button.classList.toggle("is-selected", midiLayoutSelectionSet().has(pad.id));
+  button.classList.toggle("is-single-led", feedbackSupported && !colorFeedbackSupported);
+  button.style.setProperty("--pad-on-color", midiColorInfo(midiMappingColor(pad, "colorOn")).hex);
+  button.style.setProperty("--pad-off-color", midiColorInfo(midiMappingColor(pad, "colorOff")).hex);
+  button.setAttribute("aria-label", title);
+
+  const number = document.createElement("span");
+  number.className = "midi-layout-pad-number";
+  number.textContent = pad.label;
+  button.append(number);
+  if (colorFeedbackSupported) {
+    const colors = document.createElement("span");
+    colors.className = "midi-layout-pad-colors";
+    colors.setAttribute("aria-hidden", "true");
+    const off = document.createElement("span");
+    off.style.background = midiColorInfo(midiMappingColor(pad, "colorOff")).hex;
+    const on = document.createElement("span");
+    on.style.background = midiColorInfo(midiMappingColor(pad, "colorOn")).hex;
+    colors.append(off, on);
+    button.append(colors);
+  } else if (feedbackSupported) {
+    const led = document.createElement("span");
+    led.className = "midi-layout-single-led";
+    led.textContent = "LED";
+    button.append(led);
+  }
+  button.addEventListener("click", (event) => {
+    if (state.midi.layoutPositionMode) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleMidiLayoutControlSelection(pad.id);
+      return;
+    }
+    openMidiLayoutPadEditor(pad.id);
+  });
+
+  const caption = document.createElement("div");
+  caption.className = "midi-layout-control-caption";
+  const action = document.createElement("strong");
+  action.textContent = mapped ? MIDI_ACTION_LABELS[pad.action] || pad.action : midiLayoutControlTypeLabel(pad.controlType);
+  const target = document.createElement("span");
+  target.className = "midi-layout-pad-target";
+  target.textContent = mapped ? midiLayoutPadTargetLabel(pad) : midiCompactMessageLabel(pad.message);
+  caption.append(action, target);
+
+  tile.append(button, caption);
+  return tile;
+}
+
+function handleMidiLayoutDragOver(event) {
+  if (!state.midi.layoutPositionMode) return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.dataTransfer.dropEffect = "move";
+}
+
+function handleMidiLayoutDrop(event) {
+  if (!state.midi.layoutPositionMode) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const draggedId = event.dataTransfer.getData("text/plain") || state.midi.layoutDragId;
+  const target = event.currentTarget;
+  const row = midiLayoutCoordinate(target.dataset.row, 0);
+  const col = midiLayoutCoordinate(target.dataset.col, 0);
+  moveMidiLayoutControl(draggedId, row, col);
+}
+
+function moveMidiLayoutControl(controlId, row, col) {
+  if (!controlId) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const sourceIndex = layout.pads.findIndex((control) => control.id === controlId);
+  if (sourceIndex < 0) return;
+  const source = layout.pads[sourceIndex];
+  const targetRow = midiLayoutCoordinate(row, source.row);
+  const targetCol = midiLayoutCoordinate(col, source.col);
+  const selectedIds = new Set(
+    (state.midi.layoutDragIds && state.midi.layoutDragIds.length)
+      ? state.midi.layoutDragIds
+      : (midiLayoutSelectionSet().has(controlId) ? [...midiLayoutSelectionSet()] : [controlId]),
+  );
+  selectedIds.add(controlId);
+  const selectedControls = layout.pads.filter((control) => selectedIds.has(control.id));
+  if (selectedControls.length > 1) {
+    moveMidiLayoutControlGroup(layout, source, selectedControls, targetRow, targetCol);
+    return;
+  }
+  if (source.row === targetRow && source.col === targetCol) return;
+  const targetIndex = layout.pads.findIndex((control) => (
+    control.id !== source.id &&
+    midiLayoutCoordinate(control.row, 0) === targetRow &&
+    midiLayoutCoordinate(control.col, 0) === targetCol
+  ));
+  const nextPads = layout.pads.map((control, index) => {
+    if (index === sourceIndex) return {...control, row: targetRow, col: targetCol};
+    if (index === targetIndex) return {...control, row: source.row, col: source.col};
+    return control;
+  });
+  state.midi.layout = sanitizeMidiLayout({
+    ...layout,
+    pads: nextPads,
+    controls: nextPads,
+  });
+  saveMidiLayout();
+  persistActiveMidiLayoutTemplate();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  if (els.midiLayoutStatus) {
+    els.midiLayoutStatus.textContent = targetIndex >= 0
+      ? `Moved ${source.label} and swapped with ${layout.pads[targetIndex].label}.`
+      : `Moved ${source.label}.`;
+  }
+}
+
+function moveMidiLayoutControlGroup(layout, source, selectedControls, targetRow, targetCol) {
+  let deltaRow = targetRow - midiLayoutCoordinate(source.row, 0);
+  let deltaCol = targetCol - midiLayoutCoordinate(source.col, 0);
+  const minRow = selectedControls.reduce((min, control) => Math.min(min, midiLayoutCoordinate(control.row, 0)), Infinity);
+  const minCol = selectedControls.reduce((min, control) => Math.min(min, midiLayoutCoordinate(control.col, 0)), Infinity);
+  const maxRow = selectedControls.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.row, 0)), 0);
+  const maxCol = selectedControls.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.col, 0)), 0);
+  const surfaceRows = Math.max(
+    layout.surfaceRows || layout.rows,
+    layout.pads.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.row, 0) + 1), 1),
+  );
+  const surfaceCols = Math.max(
+    layout.surfaceCols || layout.cols,
+    layout.pads.reduce((max, control) => Math.max(max, midiLayoutCoordinate(control.col, 0) + 1), 1),
+  );
+  deltaRow = Math.max(-minRow, Math.min(surfaceRows - 1 - maxRow, deltaRow));
+  deltaCol = Math.max(-minCol, Math.min(surfaceCols - 1 - maxCol, deltaCol));
+  if (deltaRow === 0 && deltaCol === 0) return;
+
+  const selectedIds = new Set(selectedControls.map((control) => control.id));
+  const proposedCells = new Set(selectedControls.map((control) => (
+    `${midiLayoutCoordinate(control.row, 0) + deltaRow}:${midiLayoutCoordinate(control.col, 0) + deltaCol}`
+  )));
+  const blockedBy = layout.pads.find((control) => (
+    !selectedIds.has(control.id) &&
+    proposedCells.has(`${midiLayoutCoordinate(control.row, 0)}:${midiLayoutCoordinate(control.col, 0)}`)
+  ));
+  if (blockedBy) {
+    showToast(`Selection blocked by ${blockedBy.label}. Move to empty cells or move that control too.`);
+    return;
+  }
+
+  const nextPads = layout.pads.map((control) => (
+    selectedIds.has(control.id)
+      ? {
+        ...control,
+        row: midiLayoutCoordinate(control.row, 0) + deltaRow,
+        col: midiLayoutCoordinate(control.col, 0) + deltaCol,
+      }
+      : control
+  ));
+  state.midi.layout = sanitizeMidiLayout({
+    ...layout,
+    pads: nextPads,
+    controls: nextPads,
+  });
+  state.midi.layoutSelectedIds = selectedIds;
+  saveMidiLayout();
+  persistActiveMidiLayoutTemplate();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  if (els.midiLayoutStatus) {
+    els.midiLayoutStatus.textContent = `Moved ${selectedControls.length} selected controls.`;
+  }
+}
+
+function toggleMidiLayoutPositionMode() {
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const template = midiLayoutTemplate(layout.template);
+  if (!template.custom) {
+    const customControls = midiLayoutControlsForPositionEditor(layout, template);
+    const surface = midiLayoutEditorSurfaceForControls(layout, template, customControls);
+    state.midi.layout = sanitizeMidiLayout({
+      ...layout,
+      template: "custom",
+      sourceTemplate: template.id,
+      physicalLayout: template.physicalLayout || "",
+      layoutRepairVersion: template.physicalLayout === "akai_apc_mini_mk2"
+        ? "apc_mini_mk2_positions_v2"
+        : "",
+      surfaceRows: surface.surfaceRows,
+      surfaceCols: surface.surfaceCols,
+      pads: customControls,
+      controls: customControls,
+    });
+    state.midi.layoutPositionMode = true;
+    saveMidiLayout();
+    renderMidiLayoutDesigner();
+    showToast("Converted current surface to Custom. Drag controls to rearrange it, then Save Model.");
+    return;
+  }
+  state.midi.layoutPositionMode = !state.midi.layoutPositionMode;
+  if (!state.midi.layoutPositionMode) clearMidiLayoutSelection({render: false});
+  renderMidiLayoutDesigner();
+}
+
+function persistActiveMidiLayoutTemplate() {
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const template = midiLayoutTemplate(layout.template);
+  if (!template.savedCustom) return false;
+  const existingTemplates = loadCustomMidiLayoutTemplates();
+  const nextTemplate = sanitizeCustomMidiLayoutTemplate({
+    ...template,
+    sourceTemplate: layout.sourceTemplate,
+    physicalLayout: layout.physicalLayout,
+    layoutRepairVersion: layout.layoutRepairVersion,
+    rows: layout.rows,
+    cols: layout.cols,
+    surfaceRows: layout.surfaceRows,
+    surfaceCols: layout.surfaceCols,
+    buttons: layout.buttons,
+    knobs: layout.knobs,
+    faders: layout.faders,
+    defaultControls: layout.pads.map(midiLayoutTemplateControlFromPad),
+  });
+  if (!nextTemplate) return false;
+  saveCustomMidiLayoutTemplates([
+    ...existingTemplates.filter((item) => item.id !== template.id),
+    nextTemplate,
+  ]);
+  return true;
+}
+
+function renderMidiLayoutSummary() {
+  if (!els.midiLayoutSummary) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const mapped = layout.pads.filter((pad) => pad.action !== "empty").length;
+  const pads = layout.rows * layout.cols;
+  const extras = [
+    layout.buttons ? `${layout.buttons} buttons` : "",
+    layout.knobs ? `${layout.knobs} knobs` : "",
+    layout.faders ? `${layout.faders} faders` : "",
+  ].filter(Boolean).join(" | ");
+  const surface = layout.surfaceRows === layout.rows && layout.surfaceCols === layout.cols
+    ? ""
+    : ` | edit grid ${layout.surfaceRows}x${layout.surfaceCols}`;
+  const selected = state.midi.layoutPositionMode && midiLayoutSelectionSet().size
+    ? ` | ${midiLayoutSelectionSet().size} selected`
+    : "";
+  els.midiLayoutSummary.textContent = `${mapped} mapped | ${pads} pads${extras ? ` | ${extras}` : ""}${surface}${selected}`;
+  const template = midiLayoutTemplate(layout.template);
+  if (els.midiLayoutPositionButton) {
+    els.midiLayoutPositionButton.hidden = false;
+    els.midiLayoutPositionButton.classList.toggle("is-active", state.midi.layoutPositionMode);
+    els.midiLayoutPositionButton.textContent = template.custom
+      ? (state.midi.layoutPositionMode ? "Done Moving" : "Edit Positions")
+      : "Customize Positions";
+  }
+  renderMidiLayoutZoomControls();
+}
+
+function midiLayoutControlTypeLabel(controlType) {
+  if (controlType === "button") return "Button";
+  if (controlType === "knob") return "Knob";
+  if (controlType === "fader") return "Fader";
+  return "Pad";
+}
+
+function applyMidiLayoutCustomSettings() {
+  const current = sanitizeMidiLayout(state.midi.layout);
+  const rows = midiLayoutNumber(els.midiLayoutRowsInput?.value, 1, 16, current.rows || 8);
+  const cols = midiLayoutNumber(els.midiLayoutColsInput?.value, 1, 16, current.cols || 8);
+  const buttons = midiLayoutNumber(els.midiLayoutButtonsInput?.value, 0, 48, current.buttons || 0);
+  const knobs = midiLayoutNumber(els.midiLayoutKnobsInput?.value, 0, 32, current.knobs || 0);
+  const faders = midiLayoutNumber(els.midiLayoutFadersInput?.value, 0, 32, current.faders || 0);
+  const surface = selectedMidiLayoutSurfaceDimensions(current);
+  state.midi.layout = sanitizeMidiLayout({
+    ...current,
+    template: "custom",
+    rows,
+    cols,
+    surfaceRows: surface.surfaceRows,
+    surfaceCols: surface.surfaceCols,
+    buttons,
+    knobs,
+    faders,
+    pads: current.pads,
+  });
+  saveMidiLayout();
+  syncMidiLayoutMappings();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  showToast(`Custom layout applied: ${rows}x${cols}, ${buttons} buttons, ${knobs} knobs, ${faders} faders.`);
+}
+
+function defaultMidiCustomModelName(layout) {
+  const cleanLayout = sanitizeMidiLayout(layout);
+  const gridLabel = cleanLayout.surfaceRows === cleanLayout.rows && cleanLayout.surfaceCols === cleanLayout.cols
+    ? ""
+    : ` on ${cleanLayout.surfaceRows}x${cleanLayout.surfaceCols} grid`;
+  const extras = [
+    cleanLayout.buttons ? `${cleanLayout.buttons} buttons` : "",
+    cleanLayout.knobs ? `${cleanLayout.knobs} knobs` : "",
+    cleanLayout.faders ? `${cleanLayout.faders} faders` : "",
+  ].filter(Boolean).join(", ");
+  return `Custom ${cleanLayout.rows}x${cleanLayout.cols}${gridLabel}${extras ? ` + ${extras}` : ""}`;
+}
+
+function midiLayoutTemplateControlFromPad(pad) {
+  const cleanPad = sanitizeMidiLayoutPad(pad);
+  return {
+    id: cleanPad.id,
+    index: cleanPad.index,
+    row: cleanPad.row,
+    col: cleanPad.col,
+    controlType: cleanPad.controlType,
+    type: cleanPad.controlType,
+    label: cleanPad.label,
+    role: cleanPad.role,
+    lit: cleanPad.lit,
+    feedbackType: cleanPad.feedbackType,
+    message: cleanPad.message,
+    colorTable: MIDI_COLOR_TABLE,
+  };
+}
+
+function saveMidiLayoutCustomModel() {
+  const current = sanitizeMidiLayout(state.midi.layout);
+  const rows = midiLayoutNumber(els.midiLayoutRowsInput?.value, 1, 16, current.rows || 8);
+  const cols = midiLayoutNumber(els.midiLayoutColsInput?.value, 1, 16, current.cols || 8);
+  const buttons = midiLayoutNumber(els.midiLayoutButtonsInput?.value, 0, 48, current.buttons || 0);
+  const knobs = midiLayoutNumber(els.midiLayoutKnobsInput?.value, 0, 32, current.knobs || 0);
+  const faders = midiLayoutNumber(els.midiLayoutFadersInput?.value, 0, 32, current.faders || 0);
+  const surface = selectedMidiLayoutSurfaceDimensions(current);
+  const appliedLayout = sanitizeMidiLayout({
+    ...current,
+    template: "custom",
+    rows,
+    cols,
+    surfaceRows: surface.surfaceRows,
+    surfaceCols: surface.surfaceCols,
+    buttons,
+    knobs,
+    faders,
+    pads: current.pads,
+  });
+  const requestedName = (els.midiLayoutCustomNameInput?.value || "").trim();
+  const label = (requestedName || defaultMidiCustomModelName(appliedLayout)).slice(0, 48);
+  const existingTemplates = loadCustomMidiLayoutTemplates();
+  const activeTemplate = midiLayoutTemplate(current.template);
+  const existingId = activeTemplate.savedCustom
+    ? activeTemplate.id
+    : existingTemplates.find((template) => template.label.toLowerCase() === label.toLowerCase())?.id;
+  const id = existingId || uniqueMidiLayoutTemplateId(label, existingTemplates);
+  const template = sanitizeCustomMidiLayoutTemplate({
+    id,
+    label,
+    sourceTemplate: appliedLayout.sourceTemplate,
+    physicalLayout: appliedLayout.physicalLayout,
+    layoutRepairVersion: appliedLayout.layoutRepairVersion,
+    rows: appliedLayout.rows,
+    cols: appliedLayout.cols,
+    surfaceRows: appliedLayout.surfaceRows,
+    surfaceCols: appliedLayout.surfaceCols,
+    buttons: appliedLayout.buttons,
+    knobs: appliedLayout.knobs,
+    faders: appliedLayout.faders,
+    ledProtocol: state.midi.controller.ledProtocol || "generic",
+    defaultControls: appliedLayout.pads.map(midiLayoutTemplateControlFromPad),
+    description: "Saved custom controller model with learned labels and MIDI messages.",
+  });
+  if (!template) return;
+  saveCustomMidiLayoutTemplates([
+    ...existingTemplates.filter((item) => item.id !== id),
+    template,
+  ]);
+  state.midi.layout = sanitizeMidiLayout({
+    ...appliedLayout,
+    template: id,
+    pads: appliedLayout.pads,
+  });
+  saveMidiLayout();
+  renderMidiLayoutDesigner();
+  showToast(`Saved controller model "${label}".`);
+}
+
+function uniqueMidiLayoutTemplateId(label, templates) {
+  const used = new Set([
+    ...MIDI_LAYOUT_TEMPLATES.map((template) => template.id),
+    ...(templates || []).map((template) => template.id),
+  ]);
+  const base = `custom_${snakeCase(label) || "controller"}`;
+  if (!used.has(base)) return base;
+  let index = 2;
+  while (used.has(`${base}_${index}`)) index += 1;
+  return `${base}_${index}`;
+}
+
+function addMidiLayoutCustomControl(controlType) {
+  const current = sanitizeMidiLayout(state.midi.layout);
+  const rows = midiLayoutNumber(els.midiLayoutRowsInput?.value, 1, 16, current.rows || 8);
+  const cols = midiLayoutNumber(els.midiLayoutColsInput?.value, 1, 16, current.cols || 8);
+  const buttons = midiLayoutNumber(els.midiLayoutButtonsInput?.value, 0, 48, current.buttons || 0);
+  const knobs = midiLayoutNumber(els.midiLayoutKnobsInput?.value, 0, 32, current.knobs || 0);
+  const faders = midiLayoutNumber(els.midiLayoutFadersInput?.value, 0, 32, current.faders || 0);
+  const surface = selectedMidiLayoutSurfaceDimensions(current);
+  const next = {
+    ...current,
+    template: "custom",
+    rows,
+    cols,
+    surfaceRows: surface.surfaceRows,
+    surfaceCols: surface.surfaceCols,
+    buttons,
+    knobs,
+    faders,
+    pads: current.pads,
+  };
+  if (controlType === "button") next.buttons = midiLayoutNumber(next.buttons + 1, 0, 48, next.buttons);
+  if (controlType === "knob") next.knobs = midiLayoutNumber(next.knobs + 1, 0, 32, next.knobs);
+  if (controlType === "fader") next.faders = midiLayoutNumber(next.faders + 1, 0, 32, next.faders);
+  state.midi.layout = sanitizeMidiLayout(next);
+  saveMidiLayout();
+  syncMidiLayoutMappings();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  showToast(`${midiLayoutControlTypeLabel(controlType)} added to Custom layout.`);
+}
+
+function midiLayoutPadIsActive(pad) {
+  if (!pad || pad.action === "empty") return false;
+  if (pad.action === "blackout") return ledfxGlobalBrightness() <= 0.01;
+  return pad.action === "start" && pad.playlistId && pad.playlistId === activePlaylistId();
+}
+
+function midiLayoutPadWasTouched(pad) {
+  const activity = state.midi.layoutActivity;
+  if (!pad || !activity || !activity.message) return false;
+  if (Date.now() - activity.time > MIDI_LAYOUT_ACTIVITY_MS) return false;
+  return midiMessagesMatch(pad.message, activity.message);
+}
+
+function markMidiLayoutActivity(message) {
+  if (!message) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const matched = layout.pads.find((pad) => midiMessagesMatch(pad.message, message));
+  state.midi.layoutActivity = {
+    message,
+    value: message.value,
+    time: Date.now(),
+    padId: matched?.id || "",
+  };
+  clearTimeout(state.midi.layoutActivityTimer);
+  state.midi.layoutActivityTimer = setTimeout(() => {
+    state.midi.layoutActivity = null;
+    if (els.midiLayoutView && !els.midiLayoutView.hidden) renderMidiLayoutGrid();
+  }, MIDI_LAYOUT_ACTIVITY_MS);
+  if (els.midiLayoutStatus && els.midiLayoutView && !els.midiLayoutView.hidden) {
+    const valueLabel = message.type === "cc" ? ` | value ${message.value}` : "";
+    els.midiLayoutStatus.textContent = matched
+      ? `Last input: ${matched.label} | ${midiMessageLabel(message)}${valueLabel}`
+      : `Last input did not match the current surface | ${midiMessageLabel(message)}${valueLabel}`;
+  }
+  if (els.midiLayoutView && !els.midiLayoutView.hidden) renderMidiLayoutGrid();
+}
+
+function midiLayoutPadTitle(pad) {
+  if (!pad || pad.action === "empty") return "Empty pad";
+  return `${MIDI_ACTION_LABELS[pad.action] || pad.action}: ${midiLayoutPadTargetLabel(pad)}`;
+}
+
+function midiLayoutPadTargetLabel(pad) {
+  if (!pad) return "No target";
+  if (pad.action === "start") return pad.playlistName || playlistNameById(pad.playlistId) || "Active playlist";
+  if (pad.action === "blackout") return "Global output";
+  if (["prev", "next", "stop"].includes(pad.action)) return "Active playlist";
+  return "No target";
+}
+
+function playlistNameById(playlistId) {
+  return (state.ledfxLibrary.playlists.find((playlist) => playlist.id === playlistId) || {}).name || "";
+}
+
+function openMidiLayoutPadEditor(padId) {
+  const pad = midiLayoutPad(padId);
+  if (!pad || !els.midiLayoutPadEditor) return;
+  state.editingStyle = null;
+  state.editingPalette = null;
+  state.editingPreset = null;
+  state.editingPresetBankItem = null;
+  state.editingSceneId = null;
+  state.editingPublishedSceneId = null;
+  state.editingPlaylistId = null;
+  state.editingMidiMappingId = null;
+  state.editingMidiLayoutPadId = padId;
+  hideModalPanels();
+  renderMidiLayoutPadEditor(pad);
+  els.midiLayoutPadEditor.hidden = false;
+  openModal(`Edit MIDI ${midiLayoutControlTypeLabel(pad.controlType)} ${pad.label}`);
+}
+
+function closeMidiLayoutPadEditor() {
+  state.editingMidiLayoutPadId = null;
+  if (els.midiLayoutPadEditor) els.midiLayoutPadEditor.hidden = true;
+  hideModal();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+}
+
+function renderMidiLayoutPadEditor(pad = null) {
+  if (!els.midiLayoutPadEditor) return;
+  const current = pad || midiLayoutPad(state.editingMidiLayoutPadId);
+  if (!current) {
+    els.midiLayoutPadEditor.hidden = true;
+    return;
+  }
+  if (els.midiLayoutPadEditStatus) {
+    els.midiLayoutPadEditStatus.textContent = `${current.label} | ${midiLayoutPadTitle(current)} | ${midiMessageLabel(current.message)}`;
+  }
+  if (els.midiLayoutPadLabelInput) els.midiLayoutPadLabelInput.value = current.label || "";
+  if (els.midiLayoutPadTypeInput) els.midiLayoutPadTypeInput.value = midiLayoutControlTypeLabel(current.controlType);
+  if (els.saveMidiLayoutPadButton) els.saveMidiLayoutPadButton.textContent = `Save ${midiLayoutControlTypeLabel(current.controlType)}`;
+  if (els.clearMidiLayoutPadButton) els.clearMidiLayoutPadButton.textContent = `Clear ${midiLayoutControlTypeLabel(current.controlType)}`;
+  if (els.midiLayoutPadActionSelect) els.midiLayoutPadActionSelect.value = current.action || "empty";
+  renderMidiLayoutPadPlaylistOptions(current.action, current.playlistId);
+  if (els.midiLayoutPadMessageInput) els.midiLayoutPadMessageInput.value = midiMessageLabel(current.message);
+  const feedbackSupported = midiLayoutControlSupportsFeedback(current);
+  const colorFeedbackSupported = midiLayoutControlSupportsColorFeedback(current);
+  setMidiFeedbackFieldsEnabled("midiLayoutPad", feedbackSupported, {
+    colorEnabled: colorFeedbackSupported,
+    singleFeedback: feedbackSupported && !colorFeedbackSupported,
+  });
+  if (colorFeedbackSupported) {
+    renderMidiColorSelect(els.midiLayoutPadColorOnSelect, midiMappingColor(current, "colorOn"));
+    renderMidiColorSelect(els.midiLayoutPadColorOffSelect, midiMappingColor(current, "colorOff"));
+  }
+  if (feedbackSupported) {
+    if (els.midiLayoutPadFeedbackModeSelect) {
+      els.midiLayoutPadFeedbackModeSelect.value = validMidiFeedbackMode(current.feedbackMode) || "inherit";
+    }
+    if (els.midiLayoutPadLedProtocolSelect) {
+      els.midiLayoutPadLedProtocolSelect.value = validMidiLedProtocol(current.ledProtocol) || "inherit";
+    }
+  }
+  const canTest = Boolean(current.message && MIDI_MAPPING_ACTIONS.has(current.action));
+  if (els.testMidiLayoutPadButton) els.testMidiLayoutPadButton.disabled = !canTest;
+}
+
+function setMidiFeedbackFieldsEnabled(scope, enabled, options = {}) {
+  const colorEnabled = enabled && options.colorEnabled !== false;
+  const singleFeedback = enabled && options.singleFeedback === true;
+  const fields = scope === "midiLayoutPad"
+    ? {
+      colors: [els.midiLayoutPadColorOnSelect, els.midiLayoutPadColorOffSelect],
+      settings: [els.midiLayoutPadFeedbackModeSelect, els.midiLayoutPadLedProtocolSelect],
+      note: els.midiLayoutPadFeedbackNote,
+    }
+    : {
+      colors: [els.midiEditColorOnSelect, els.midiEditColorOffSelect],
+      settings: [els.midiEditFeedbackModeSelect, els.midiEditLedProtocolSelect],
+      note: els.midiEditFeedbackNote,
+    };
+  fields.colors.forEach((select) => {
+    if (!select) return;
+    select.disabled = !colorEnabled;
+    const picker = midiColorPickerFor(select);
+    if (picker) {
+      picker.hidden = !colorEnabled;
+      if (!colorEnabled) closeMidiColorMenu(picker);
+    }
+    const preview = (picker || select).nextElementSibling;
+    if (preview && preview.classList.contains("midi-color-preview")) preview.hidden = !colorEnabled;
+    const field = select.closest("label");
+    if (field) field.hidden = !colorEnabled;
+  });
+  fields.settings.forEach((select) => {
+    if (!select) return;
+    select.disabled = !enabled;
+    const field = select.closest("label");
+    if (field) field.hidden = !enabled;
+  });
+  if (fields.note) {
+    fields.note.hidden = enabled && !singleFeedback;
+    fields.note.textContent = singleFeedback
+      ? "This hardware button has a fixed single-color LED. Workshop sends ON/OFF feedback only; color pickers are hidden because the controller does not expose RGB here."
+      : "This control does not expose LED feedback, so color and feedback settings are disabled.";
+  }
+}
+
+function renderMidiLayoutPadPlaylistOptions(action, currentValue = "active") {
+  if (!els.midiLayoutPadPlaylistSelect) return;
+  els.midiLayoutPadPlaylistSelect.innerHTML = "";
+  if (action === "start") {
+    if (!state.ledfxLibrary.playlists.length) {
+      els.midiLayoutPadPlaylistSelect.append(option("Active playlist", "active"));
+    } else {
+      state.ledfxLibrary.playlists.forEach((playlist) => {
+        els.midiLayoutPadPlaylistSelect.append(option(playlist.name, playlist.id));
+      });
+      if (currentValue && !state.ledfxLibrary.playlists.some((playlist) => playlist.id === currentValue)) {
+        els.midiLayoutPadPlaylistSelect.append(option(`Current missing playlist (${currentValue})`, currentValue));
+      }
+    }
+    els.midiLayoutPadPlaylistSelect.disabled = false;
+  } else {
+    els.midiLayoutPadPlaylistSelect.append(option("Active playlist", "active"));
+    els.midiLayoutPadPlaylistSelect.disabled = true;
+  }
+  els.midiLayoutPadPlaylistSelect.value = [...els.midiLayoutPadPlaylistSelect.options].some((item) => item.value === currentValue)
+    ? currentValue
+    : els.midiLayoutPadPlaylistSelect.options[0]?.value || "active";
+}
+
+function currentMidiLayoutPadDraft() {
+  const current = midiLayoutPad(state.editingMidiLayoutPadId);
+  if (!current) return null;
+  const action = MIDI_LAYOUT_ACTIONS.has(els.midiLayoutPadActionSelect.value)
+    ? els.midiLayoutPadActionSelect.value
+    : current.action;
+  const selectedPlaylistId = action === "start"
+    ? (els.midiLayoutPadPlaylistSelect.value || current.playlistId || "active")
+    : "active";
+  const playlist = state.ledfxLibrary.playlists.find((item) => item.id === selectedPlaylistId);
+  const feedbackSupported = midiLayoutControlSupportsFeedback(current);
+  const colorFeedbackSupported = midiLayoutControlSupportsColorFeedback(current);
+  const feedbackModeValue = feedbackSupported ? els.midiLayoutPadFeedbackModeSelect.value : "off";
+  const ledProtocolValue = feedbackSupported ? els.midiLayoutPadLedProtocolSelect.value : "inherit";
+  return {
+    ...current,
+    label: (els.midiLayoutPadLabelInput?.value || current.label || "").trim().slice(0, 28) || current.label,
+    action,
+    playlistId: selectedPlaylistId,
+    playlistName: action === "start" ? (playlist?.name || current.playlistName || "Active playlist") : "Active playlist",
+    mode: action === "start" ? (playlist?.mode || current.mode || null) : null,
+    colorOn: colorFeedbackSupported ? clampMidiValue(els.midiLayoutPadColorOnSelect.value) : null,
+    colorOff: colorFeedbackSupported ? clampMidiValue(els.midiLayoutPadColorOffSelect.value) : null,
+    feedbackMode: feedbackSupported && feedbackModeValue === "inherit" ? null : validMidiFeedbackMode(feedbackModeValue),
+    ledProtocol: feedbackSupported && ledProtocolValue === "inherit" ? null : validMidiLedProtocol(ledProtocolValue),
+    feedbackType: midiLayoutControlFeedbackType(current),
+    colorTable: MIDI_COLOR_TABLE,
+  };
+}
+
+function saveMidiLayoutPad() {
+  const draft = currentMidiLayoutPadDraft();
+  if (!draft) return;
+  const saved = setMidiLayoutPad(draft);
+  if (saved) {
+    closeMidiLayoutPadEditor();
+    showToast(`${saved.label} saved.`);
+  }
+}
+
+function learnMidiLayoutPad() {
+  const draft = currentMidiLayoutPadDraft();
+  if (!draft) return;
+  setMidiLayoutPad(draft);
+  startMidiLearn({
+    action: draft.action,
+    playlistId: draft.playlistId,
+    playlistName: draft.playlistName,
+    mode: draft.mode,
+    colorOn: draft.colorOn,
+    colorOff: draft.colorOff,
+    feedbackMode: draft.feedbackMode,
+    ledProtocol: draft.ledProtocol,
+    feedbackType: draft.feedbackType,
+    layoutPadId: draft.id,
+    layoutControlType: draft.controlType,
+    supportsFeedback: midiLayoutControlSupportsFeedback(draft),
+    padLabel: draft.label,
+  });
+  renderMidiLayoutPadEditor(draft);
+}
+
+function testMidiLayoutPad() {
+  const draft = currentMidiLayoutPadDraft();
+  const mapping = midiLayoutPadToMapping(draft);
+  if (!mapping) {
+    showToast("Choose an action before testing this pad.");
+    return;
+  }
+  executeMidiMapping(mapping).catch((error) => showToast(error.message));
+}
+
+function clearCurrentMidiLayoutPad() {
+  const pad = midiLayoutPad(state.editingMidiLayoutPadId);
+  if (!pad) return;
+  clearMidiLayoutPad(pad.id);
+  closeMidiLayoutPadEditor();
+  showToast(`${pad.label} cleared.`);
+}
+
+function autoMapMidiLayout() {
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  const template = midiLayoutTemplate(layout.template);
+  const controls = layout.pads.map((pad) => ({
+    ...pad,
+    action: "empty",
+    playlistId: "active",
+    playlistName: "",
+    mode: null,
+    colorOn: null,
+    colorOff: null,
+    feedbackMode: null,
+    ledProtocol: null,
+  }));
+  const padControls = controls.filter((pad) => pad.controlType === "pad");
+  const buttonControls = controls.filter((pad) => pad.controlType === "button" && pad.role !== "shift");
+  const updateControl = (controlId, patch) => {
+    const index = controls.findIndex((item) => item.id === controlId);
+    if (index >= 0) controls[index] = {...controls[index], ...patch};
+  };
+  const transportActions = ["blackout", "prev", "next", "stop"];
+  const transportControls = buttonControls.length >= transportActions.length
+    ? buttonControls.slice(-transportActions.length)
+    : padControls.slice(Math.max(0, padControls.length - transportActions.length));
+  const transportIds = new Set(transportControls.map((control) => control.id));
+  const playlistControls = padControls.filter((control) => !transportIds.has(control.id));
+  const playlistSlots = playlistControls.length;
+  state.ledfxLibrary.playlists.slice(0, playlistSlots).forEach((playlist, index) => {
+    const target = playlistControls[index];
+    updateControl(target.id, {
+      action: "start",
+      playlistId: playlist.id,
+      playlistName: playlist.name,
+      mode: playlist.mode,
+      ...midiLayoutFeedbackPatch(target, template, MIDI_LAYOUT_COLOR_SEQUENCE[index % MIDI_LAYOUT_COLOR_SEQUENCE.length], 0, "latch"),
+    });
+  });
+  transportActions.forEach((action, offset) => {
+    const target = transportControls[offset];
+    if (!target) return;
+    updateControl(target.id, {
+      action,
+      playlistId: "active",
+      playlistName: "Active playlist",
+      mode: null,
+      ...midiLayoutFeedbackPatch(
+        target,
+        template,
+        action === "blackout" ? 5 : MIDI_LAYOUT_COLOR_SEQUENCE[(playlistSlots + offset) % MIDI_LAYOUT_COLOR_SEQUENCE.length],
+        0,
+        action === "blackout" ? "latch" : "momentary",
+      ),
+    });
+  });
+  state.midi.layout = sanitizeMidiLayout({
+    template: template.id,
+    rows: layout.rows,
+    cols: layout.cols,
+    surfaceRows: layout.surfaceRows,
+    surfaceCols: layout.surfaceCols,
+    buttons: layout.buttons,
+    knobs: layout.knobs,
+    faders: layout.faders,
+    pads: controls,
+  });
+  saveMidiLayout();
+  syncMidiLayoutMappings();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  showToast(`Mapped ${Math.min(state.ledfxLibrary.playlists.length, playlistSlots)} playlists plus transport pads.`);
+}
+
+function clearMidiLayout() {
+  if (!window.confirm("Clear the visual MIDI layout and its linked mappings?")) return;
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  clearMidiLayoutSelection({render: false});
+  state.midi.mappings
+    .filter((mapping) => mapping.layoutPadId)
+    .forEach((mapping) => sendMidiFeedback(mapping, false));
+  state.midi.mappings = state.midi.mappings.filter((mapping) => !mapping.layoutPadId);
+  state.midi.layout = sanitizeMidiLayout({
+    template: layout.template,
+    rows: layout.rows,
+    cols: layout.cols,
+    surfaceRows: layout.surfaceRows,
+    surfaceCols: layout.surfaceCols,
+    buttons: layout.buttons,
+    knobs: layout.knobs,
+    faders: layout.faders,
+    pads: [],
+  });
+  saveMidiLayout();
+  saveMidiMappings();
+  renderMidiLayoutDesigner();
+  renderMidiMapper();
+  refreshMidiFeedback();
+  showToast("MIDI layout cleared.");
+}
+
+function refreshMidiMappingsFromStorage() {
+  state.midi.controller = loadMidiControllerSettings();
+  state.midi.mappings = loadMidiMappings();
+  state.midi.layout = loadMidiLayout();
+  state.midi.profiles = loadMidiProfiles();
+  const selectedProfileId = localStorage.getItem(MIDI_SELECTED_PROFILE_KEY) || "";
+  state.midi.selectedProfileId = state.midi.profiles.some((profile) => profile.id === selectedProfileId)
+    ? selectedProfileId
+    : "";
+  state.midi.learn = null;
+  state.midi.layoutPositionMode = false;
+  state.midi.layoutDragId = "";
+  clearMidiLayoutSelection({render: false});
+  state.editingMidiMappingId = null;
+  state.editingMidiLayoutPadId = null;
+  if (els.midiMappingEditor) els.midiMappingEditor.hidden = true;
+  if (els.midiLayoutPadEditor) els.midiLayoutPadEditor.hidden = true;
+  state.midi.mappings.forEach(syncMidiLayoutPadFromMapping);
+  renderMidiMapper();
+  renderMidiLayoutDesigner();
+  refreshMidiFeedback();
+  showToast(`Refreshed ${state.midi.mappings.length} MIDI mapping${state.midi.mappings.length === 1 ? "" : "s"}.`);
+}
+
+function resetAllMidiMappings() {
+  if (!window.confirm("Reset all MIDI mappings, controller feedback settings and visual layout to factory defaults?")) return;
+  const hardwareReset = resetMidiHardwareFeedback();
+  state.midi.controller = {...DEFAULT_MIDI_CONTROLLER};
+  state.midi.mappings = [];
+  state.midi.layout = sanitizeMidiLayout({template: MIDI_LAYOUT_DEFAULT_TEMPLATE, pads: []});
+  state.midi.learn = null;
+  state.midi.lastTrigger = {};
+  state.midi.selectedProfileId = "";
+  clearMidiLayoutSelection({render: false});
+  state.editingMidiMappingId = null;
+  state.editingMidiLayoutPadId = null;
+  localStorage.removeItem(MIDI_SELECTED_PROFILE_KEY);
+  saveMidiControllerSettings();
+  saveMidiMappings();
+  saveMidiLayout();
+  if (els.midiProfileNameInput) els.midiProfileNameInput.value = "";
+  if (els.midiMappingEditor) els.midiMappingEditor.hidden = true;
+  if (els.midiLayoutPadEditor) els.midiLayoutPadEditor.hidden = true;
+  renderMidiMapper();
+  renderMidiLayoutDesigner();
+  refreshMidiFeedback();
+  showToast(hardwareReset
+    ? "MIDI mappings reset and controller LEDs cleared."
+    : "MIDI controller mappings reset to factory defaults.");
+}
+
+function resetMidiHardwareFeedback() {
+  const output = selectedMidiOutput();
+  if (!output) {
+    state.midi.mappings.forEach((mapping) => sendMidiFeedback(mapping, false));
+    return false;
+  }
+  const template = midiLayoutTemplate(state.midi.layout?.template);
+  const shouldResetApc = template.id === "akai_apc_mini_mk2"
+    || state.midi.controller.ledProtocol === "akai_apc_mini_mk2";
+  if (shouldResetApc) {
+    APC_MINI_MK2_FULL_RESET_NOTES.forEach((note) => {
+      output.send([0x90, clampMidiValue(note), 0]);
+      output.send([0x96, clampMidiValue(note), 0]);
+    });
+    return true;
+  }
+  state.midi.mappings.forEach((mapping) => sendMidiFeedback(mapping, false));
+  return true;
+}
+
 function loadMidiProfiles() {
   try {
     const parsed = JSON.parse(localStorage.getItem(MIDI_PROFILES_KEY) || "[]");
@@ -5606,7 +8321,8 @@ function sanitizeMidiProfile(profile) {
   const mappings = Array.isArray(profile.mappings)
     ? profile.mappings.map(sanitizeMidiMapping).filter(Boolean)
     : [];
-  return {id, name, controller, mappings};
+  const layout = profile.layout ? sanitizeMidiLayout(profile.layout) : null;
+  return {id, name, controller, mappings, layout};
 }
 
 function sanitizeMidiController(controller) {
@@ -5637,16 +8353,21 @@ function renderMidiMapper() {
   renderMidiProfiles();
   renderMidiPlaylistMapList();
   renderMidiMappingList();
+  if (els.midiLayoutView && !els.midiLayoutView.hidden) renderMidiLayoutDesigner();
 }
 
 async function connectMidi() {
   if (!navigator.requestMIDIAccess) {
     els.midiStatus.textContent = "Web MIDI is not available in this browser.";
+    if (els.midiLayoutStatus) els.midiLayoutStatus.textContent = "Web MIDI is not available in this browser.";
     showToast("Web MIDI is not available in this browser.");
     return;
   }
-  els.midiConnectButton.disabled = true;
-  els.midiConnectButton.textContent = "Connecting...";
+  const buttons = [els.midiConnectButton, els.midiLayoutConnectButton].filter(Boolean);
+  buttons.forEach((button) => {
+    button.disabled = true;
+    button.textContent = "Connecting...";
+  });
   try {
     state.midi.access = await navigator.requestMIDIAccess({sysex: false});
     state.midi.access.onstatechange = refreshMidiInputs;
@@ -5654,10 +8375,13 @@ async function connectMidi() {
     showToast("MIDI connected.");
   } catch (error) {
     els.midiStatus.textContent = `MIDI unavailable: ${error.message}`;
+    if (els.midiLayoutStatus) els.midiLayoutStatus.textContent = `MIDI unavailable: ${error.message}`;
     showToast(error.message);
   } finally {
-    els.midiConnectButton.disabled = false;
-    els.midiConnectButton.textContent = "Connect MIDI";
+    buttons.forEach((button) => {
+      button.disabled = false;
+      button.textContent = "Connect MIDI";
+    });
   }
 }
 
@@ -5686,7 +8410,7 @@ function renderMidiInputs() {
     els.midiInputSelect.disabled = true;
   } else {
     state.midi.inputs.forEach((input) => {
-      els.midiInputSelect.append(option(input.name || input.id, input.id));
+      els.midiInputSelect.append(option(midiPortOptionLabel(input, "input"), input.id));
     });
     els.midiInputSelect.disabled = false;
     els.midiInputSelect.value = state.midi.inputs.some((input) => input.id === current)
@@ -5709,7 +8433,7 @@ function renderMidiOutputs() {
     return;
   }
   state.midi.outputs.forEach((output) => {
-    els.midiOutputSelect.append(option(output.name || output.id, output.id));
+    els.midiOutputSelect.append(option(midiPortOptionLabel(output, "output"), output.id));
   });
   els.midiOutputSelect.disabled = false;
   els.midiOutputSelect.value = state.midi.outputs.some((output) => output.id === current)
@@ -5772,6 +8496,7 @@ function saveCurrentMidiProfile() {
     name,
     controller: sanitizeMidiController(state.midi.controller),
     mappings: state.midi.mappings.map((mapping) => ({...mapping})),
+    layout: sanitizeMidiLayout(state.midi.layout),
   };
   state.midi.profiles = state.midi.profiles.filter((item) => item.id !== id);
   state.midi.profiles.push(profile);
@@ -5796,9 +8521,14 @@ function loadSelectedMidiProfile() {
   if (!profile) return;
   state.midi.controller = sanitizeMidiController(profile.controller);
   state.midi.mappings = (profile.mappings || []).map(sanitizeMidiMapping).filter(Boolean);
+  if (profile.layout) {
+    state.midi.layout = sanitizeMidiLayout(profile.layout);
+    saveMidiLayout();
+  }
   saveMidiControllerSettings();
   saveMidiMappings();
   renderMidiMapper();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
   showToast(`Loaded MIDI profile "${profile.name}".`);
 }
@@ -6067,11 +8797,37 @@ function normalizeMidiColorValue(value, useLegacyMap = false) {
 function midiMappingColor(mapping, key) {
   const ownValue = mapping && mapping[key];
   if (ownValue !== undefined && ownValue !== null) return clampMidiValue(ownValue);
+  const actionDefault = midiActionDefaultColor(mapping && mapping.action, key);
+  if (actionDefault !== null) return actionDefault;
   return clampMidiValue(state.midi.controller[key]);
 }
 
+function midiMappingSupportsFeedback(mapping) {
+  if (!mapping) return true;
+  const linkedControl = mapping.layoutPadId ? midiLayoutPad(mapping.layoutPadId) : null;
+  if (linkedControl) return midiLayoutControlSupportsFeedback(linkedControl);
+  if (mapping.supportsFeedback === false || mapping.layoutControlType === "fader") return false;
+  if (validMidiFeedbackType(mapping.feedbackType) === "none") return false;
+  return true;
+}
+
+function midiMappingSupportsColorFeedback(mapping) {
+  return midiMappingSupportsFeedback(mapping) && midiMappingFeedbackType(mapping) === "rgb";
+}
+
+function midiMappingFeedbackType(mapping) {
+  if (!midiMappingSupportsFeedback(mapping)) return "none";
+  const linkedControl = mapping && mapping.layoutPadId ? midiLayoutPad(mapping.layoutPadId) : null;
+  if (linkedControl) return midiLayoutControlFeedbackType(linkedControl);
+  return validMidiFeedbackType(mapping && mapping.feedbackType) || "rgb";
+}
+
 function midiMappingFeedbackMode(mapping) {
-  return validMidiFeedbackMode(mapping && mapping.feedbackMode) || state.midi.controller.feedbackMode || DEFAULT_MIDI_CONTROLLER.feedbackMode;
+  if (!midiMappingSupportsFeedback(mapping)) return "off";
+  return validMidiFeedbackMode(mapping && mapping.feedbackMode)
+    || MIDI_ACTION_FEEDBACK_DEFAULTS[mapping && mapping.action]?.feedbackMode
+    || state.midi.controller.feedbackMode
+    || DEFAULT_MIDI_CONTROLLER.feedbackMode;
 }
 
 function midiMappingLedProtocol(mapping) {
@@ -6088,6 +8844,16 @@ function sendMidiFeedback(mapping, isOn) {
   if (feedbackMode === "off") return;
   const output = selectedMidiOutput();
   if (!output || !["note", "cc"].includes(mapping.message.type)) return;
+  if (midiMappingFeedbackType(mapping) === "single") {
+    const baseChannel = Math.max(1, Math.min(16, Number(mapping.message.channel) || 1));
+    const command = mapping.message.type === "cc" ? 0xb0 : 0x90;
+    output.send([
+      command + baseChannel - 1,
+      clampMidiValue(mapping.message.number),
+      isOn ? 1 : 0,
+    ]);
+    return;
+  }
   const channel = midiFeedbackChannel(mapping, isOn);
   const command = mapping.message.type === "cc" ? 0xb0 : 0x90;
   const status = command + channel - 1;
@@ -6102,9 +8868,8 @@ function midiFeedbackChannel(mapping, isOn = true) {
   if (
     protocol === "akai_apc_mini_mk2" &&
     mapping.message.type === "note" &&
-    Number.isFinite(note) &&
-    note >= 0 &&
-    note <= 63
+    midiMappingFeedbackType(mapping) === "rgb" &&
+    Number.isFinite(note)
   ) {
     return isOn ? 7 : 1;
   }
@@ -6147,6 +8912,8 @@ async function setLedFxGlobalBrightness(value, toastOnSuccess = false) {
     : clean;
   if (state.app) state.app.global_brightness = actual;
   renderBlackoutControls();
+  renderMidiLayoutDesigner();
+  refreshMidiFeedback();
   const requested = Number(data.requested_global_brightness ?? clean);
   if (Math.abs(actual - requested) > 0.02) {
     showToast(`LedFx reported brightness ${Math.round(actual * 100)}% after update.`);
@@ -6220,8 +8987,14 @@ function renderMidiMappingList() {
     meta.append(
       pill(midiMessageLabel(mapping.message)),
       pill(midiMappingPlaylistLabel(mapping)),
-      midiMappingColorPreview(mapping),
     );
+    if (midiMappingSupportsColorFeedback(mapping)) {
+      meta.append(midiMappingColorPreview(mapping));
+    } else if (midiMappingFeedbackType(mapping) === "single") {
+      meta.append(pill("Single LED on/off"));
+    } else {
+      meta.append(pill("No LED feedback"));
+    }
     main.append(title, meta);
 
     const actions = document.createElement("div");
@@ -6272,6 +9045,7 @@ function openMidiMappingEditor(mappingId) {
   state.editingSceneId = null;
   state.editingPublishedSceneId = null;
   state.editingPlaylistId = null;
+  state.editingMidiLayoutPadId = null;
   state.editingMidiMappingId = mappingId;
   hideModalPanels();
   renderMidiMappingEditor(mapping);
@@ -6299,13 +9073,23 @@ function renderMidiMappingEditor(mapping = null) {
   if (els.midiEditActionSelect) els.midiEditActionSelect.value = current.action;
   renderMidiEditPlaylistOptions(current.action, current.playlistId);
   if (els.midiEditMessageInput) els.midiEditMessageInput.value = midiMessageLabel(current.message);
-  renderMidiColorSelect(els.midiEditColorOnSelect, midiMappingColor(current, "colorOn"));
-  renderMidiColorSelect(els.midiEditColorOffSelect, midiMappingColor(current, "colorOff"));
-  if (els.midiEditFeedbackModeSelect) {
-    els.midiEditFeedbackModeSelect.value = validMidiFeedbackMode(current.feedbackMode) || "inherit";
+  const feedbackSupported = midiMappingSupportsFeedback(current);
+  const colorFeedbackSupported = midiMappingSupportsColorFeedback(current);
+  setMidiFeedbackFieldsEnabled("midiEdit", feedbackSupported, {
+    colorEnabled: colorFeedbackSupported,
+    singleFeedback: feedbackSupported && !colorFeedbackSupported,
+  });
+  if (colorFeedbackSupported) {
+    renderMidiColorSelect(els.midiEditColorOnSelect, midiMappingColor(current, "colorOn"));
+    renderMidiColorSelect(els.midiEditColorOffSelect, midiMappingColor(current, "colorOff"));
   }
-  if (els.midiEditLedProtocolSelect) {
-    els.midiEditLedProtocolSelect.value = validMidiLedProtocol(current.ledProtocol) || "inherit";
+  if (feedbackSupported) {
+    if (els.midiEditFeedbackModeSelect) {
+      els.midiEditFeedbackModeSelect.value = validMidiFeedbackMode(current.feedbackMode) || "inherit";
+    }
+    if (els.midiEditLedProtocolSelect) {
+      els.midiEditLedProtocolSelect.value = validMidiLedProtocol(current.ledProtocol) || "inherit";
+    }
   }
 }
 
@@ -6343,35 +9127,54 @@ function currentMidiMappingDraft() {
     ? (els.midiEditPlaylistSelect.value || current.playlistId || "active")
     : "active";
   const playlist = state.ledfxLibrary.playlists.find((item) => item.id === selectedPlaylistId);
-  const feedbackModeValue = els.midiEditFeedbackModeSelect.value;
-  const ledProtocolValue = els.midiEditLedProtocolSelect.value;
+  const feedbackSupported = midiMappingSupportsFeedback(current);
+  const colorFeedbackSupported = midiMappingSupportsColorFeedback(current);
+  const feedbackModeValue = feedbackSupported ? els.midiEditFeedbackModeSelect.value : "off";
+  const ledProtocolValue = feedbackSupported ? els.midiEditLedProtocolSelect.value : "inherit";
   return {
     ...current,
     action,
     playlistId: selectedPlaylistId,
     playlistName: action === "start" ? (playlist?.name || current.playlistName || "Active playlist") : "Active playlist",
     mode: action === "start" ? (playlist?.mode || current.mode || null) : null,
-    colorOn: clampMidiValue(els.midiEditColorOnSelect.value),
-    colorOff: clampMidiValue(els.midiEditColorOffSelect.value),
-    feedbackMode: feedbackModeValue === "inherit" ? null : validMidiFeedbackMode(feedbackModeValue),
-    ledProtocol: ledProtocolValue === "inherit" ? null : validMidiLedProtocol(ledProtocolValue),
+    colorOn: colorFeedbackSupported ? clampMidiValue(els.midiEditColorOnSelect.value) : null,
+    colorOff: colorFeedbackSupported ? clampMidiValue(els.midiEditColorOffSelect.value) : null,
+    feedbackMode: feedbackSupported && feedbackModeValue === "inherit" ? null : validMidiFeedbackMode(feedbackModeValue),
+    ledProtocol: feedbackSupported && ledProtocolValue === "inherit" ? null : validMidiLedProtocol(ledProtocolValue),
     colorTable: MIDI_COLOR_TABLE,
+    layoutPadId: current.layoutPadId || null,
+    layoutControlType: current.layoutControlType || null,
+    supportsFeedback: feedbackSupported,
+    feedbackType: midiMappingFeedbackType(current),
     id: midiMappingId(action, selectedPlaylistId, current.message),
   };
 }
 
 function saveMidiMappingEdit() {
   const currentIndex = state.midi.mappings.findIndex((item) => item.id === state.editingMidiMappingId);
-  const draft = currentMidiMappingDraft();
+  let draft = currentMidiMappingDraft();
+  draft = attachMidiMappingToLayoutControl(draft);
   if (currentIndex < 0 || !draft) return;
   const previous = state.midi.mappings[currentIndex];
   sendMidiFeedback(previous, false);
-  const nextMappings = state.midi.mappings.filter((item, index) => index !== currentIndex && item.id !== draft.id);
+  const replacedMappings = state.midi.mappings.filter((item, index) => (
+    index !== currentIndex &&
+    (item.id === draft.id || (draft.layoutPadId && item.layoutPadId === draft.layoutPadId))
+  ));
+  replacedMappings.forEach((mapping) => sendMidiFeedback(mapping, false));
+  const nextMappings = state.midi.mappings.filter((item, index) => (
+    index !== currentIndex &&
+    item.id !== draft.id &&
+    (!draft.layoutPadId || item.layoutPadId !== draft.layoutPadId)
+  ));
   nextMappings.splice(Math.min(currentIndex, nextMappings.length), 0, draft);
   state.midi.mappings = nextMappings;
+  removeMidiMessageConflicts(draft.message, {keepMappingId: draft.id, keepLayoutPadId: draft.layoutPadId || ""});
   saveMidiMappings();
+  syncMidiLayoutPadFromMapping(draft);
   state.editingMidiMappingId = draft.id;
   closeMidiMappingEditor();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
   showToast("MIDI mapping saved.");
 }
@@ -6389,7 +9192,11 @@ function startMidiLearn(target) {
   }
   state.midi.learn = target;
   renderMidiMapper();
-  showToast(`Learning ${MIDI_ACTION_LABELS[target.action] || target.action}. Press a MIDI control.`);
+  renderMidiLayoutDesigner();
+  const label = target.layoutPadId
+    ? `pad ${target.padLabel || target.layoutPadId}`
+    : MIDI_ACTION_LABELS[target.action] || target.action;
+  showToast(`Learning ${label}. Press a MIDI control.`);
 }
 
 function midiTransportTarget(action) {
@@ -6404,10 +9211,37 @@ function midiTransportTarget(action) {
 function handleMidiMessage(event) {
   const message = parseMidiMessage(event.data);
   if (!message) return;
+  markMidiLayoutActivity(message);
   if (state.midi.learn) {
     const target = state.midi.learn;
     state.midi.learn = null;
+    if (target.layoutPadId) {
+      const pad = midiLayoutPad(target.layoutPadId);
+      if (pad) {
+        const saved = setMidiLayoutPad({
+          ...pad,
+          action: target.action,
+          playlistId: target.action === "start" ? (target.playlistId || "active") : "active",
+          playlistName: target.action === "start" ? (target.playlistName || "Active playlist") : "Active playlist",
+          mode: target.mode || null,
+          message,
+          controlType: target.layoutControlType || pad.controlType,
+          type: target.layoutControlType || pad.controlType,
+          colorOn: target.colorOn === undefined || target.colorOn === null ? pad.colorOn : target.colorOn,
+          colorOff: target.colorOff === undefined || target.colorOff === null ? pad.colorOff : target.colorOff,
+          feedbackMode: target.feedbackMode === undefined ? pad.feedbackMode : target.feedbackMode,
+          ledProtocol: target.ledProtocol === undefined ? pad.ledProtocol : target.ledProtocol,
+          feedbackType: target.feedbackType === undefined ? pad.feedbackType : target.feedbackType,
+        });
+        renderMidiMapper();
+        renderMidiLayoutDesigner();
+        if (state.editingMidiLayoutPadId === target.layoutPadId) renderMidiLayoutPadEditor(saved);
+        showToast(`Mapped ${saved.label} to ${midiMessageLabel(message)}.`);
+      }
+      return;
+    }
     const playlistId = target.action === "start" ? (target.playlistId || "active") : "active";
+    const feedbackDefaults = midiActionFeedbackDefaults(target.action, target, {preserveExisting: false});
     upsertMidiMapping({
       id: midiMappingId(target.action, playlistId, message),
       action: target.action,
@@ -6415,19 +9249,20 @@ function handleMidiMessage(event) {
       playlistName: target.action === "start" ? (target.playlistName || "Active playlist") : "Active playlist",
       mode: target.mode || null,
       message,
-      colorOn: clampMidiValue(state.midi.controller.colorOn),
-      colorOff: clampMidiValue(state.midi.controller.colorOff),
-      feedbackMode: state.midi.controller.feedbackMode,
-      ledProtocol: state.midi.controller.ledProtocol,
+      colorOn: feedbackDefaults.colorOn,
+      colorOff: feedbackDefaults.colorOff,
+      feedbackMode: feedbackDefaults.feedbackMode,
+      ledProtocol: feedbackDefaults.ledProtocol,
       colorTable: MIDI_COLOR_TABLE,
+      feedbackType: "rgb",
     });
     renderMidiMapper();
+    renderMidiLayoutDesigner();
     showToast(`Mapped ${midiMappingTitle(target)} to ${midiMessageLabel(message)}.`);
     return;
   }
-  state.midi.mappings
-    .filter((mapping) => midiMessagesMatch(mapping.message, message))
-    .forEach((mapping) => executeMidiMapping(mapping, message));
+  const mapping = state.midi.mappings.find((item) => midiMessagesMatch(item.message, message));
+  if (mapping) executeMidiMapping(mapping, message);
 }
 
 function parseMidiMessage(data) {
@@ -6445,10 +9280,26 @@ function midiMessagesMatch(left, right) {
 }
 
 function upsertMidiMapping(mapping) {
-  state.midi.mappings = state.midi.mappings.filter((item) => item.id !== mapping.id);
-  state.midi.mappings.push(mapping);
+  const cleanMapping = attachMidiMappingToLayoutControl(mapping);
+  if (!cleanMapping) return;
+  const replacedMappings = state.midi.mappings.filter((item) => (
+    item.id === cleanMapping.id ||
+    (cleanMapping.layoutPadId && item.layoutPadId === cleanMapping.layoutPadId)
+  ));
+  replacedMappings.forEach((mapping) => sendMidiFeedback(mapping, false));
+  removeMidiMessageConflicts(cleanMapping.message, {
+    keepMappingId: cleanMapping.id,
+    keepLayoutPadId: cleanMapping.layoutPadId || "",
+  });
+  state.midi.mappings = state.midi.mappings.filter((item) => (
+    item.id !== cleanMapping.id &&
+    (!cleanMapping.layoutPadId || item.layoutPadId !== cleanMapping.layoutPadId)
+  ));
+  state.midi.mappings.push(cleanMapping);
+  syncMidiLayoutPadFromMapping(cleanMapping);
   saveMidiMappings();
-  sendMidiFeedback(mapping, false);
+  sendMidiFeedback(cleanMapping, false);
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
 }
 
@@ -6481,8 +9332,12 @@ function deleteMidiMapping(mappingId) {
   const mapping = state.midi.mappings.find((item) => item.id === mappingId);
   if (mapping) sendMidiFeedback(mapping, false);
   state.midi.mappings = state.midi.mappings.filter((mapping) => mapping.id !== mappingId);
+  if (mapping && mapping.layoutPadId) {
+    clearMidiLayoutPad(mapping.layoutPadId, {keepMessage: false});
+  }
   saveMidiMappings();
   renderMidiMapper();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
 }
 
@@ -6491,8 +9346,23 @@ function clearMidiMappings() {
   if (!window.confirm("Clear all MIDI mappings?")) return;
   state.midi.mappings.forEach((mapping) => sendMidiFeedback(mapping, false));
   state.midi.mappings = [];
+  const layout = sanitizeMidiLayout(state.midi.layout);
+  clearMidiLayoutSelection({render: false});
+  state.midi.layout = sanitizeMidiLayout({
+    template: layout.template,
+    rows: layout.rows,
+    cols: layout.cols,
+    surfaceRows: layout.surfaceRows,
+    surfaceCols: layout.surfaceCols,
+    buttons: layout.buttons,
+    knobs: layout.knobs,
+    faders: layout.faders,
+    pads: [],
+  });
+  saveMidiLayout();
   saveMidiMappings();
   renderMidiMapper();
+  renderMidiLayoutDesigner();
 }
 
 function midiMappingTitle(mapping) {
@@ -6511,6 +9381,12 @@ function midiMessageLabel(message) {
   if (!message) return "No MIDI message";
   const type = message.type === "cc" ? "CC" : message.type === "program" ? "Program" : "Note";
   return `${type} ${message.number} / ch ${message.channel}`;
+}
+
+function midiCompactMessageLabel(message) {
+  if (!message) return "No MIDI";
+  const type = message.type === "cc" ? "CC" : message.type === "program" ? "PGM" : "N";
+  return `${type}${message.number} / ch${message.channel}`;
 }
 
 function renderControls() {
@@ -10105,6 +12981,7 @@ els.presetLabTabButton.addEventListener("click", () => setAppView("presets"));
 els.liveModeTabButton.addEventListener("click", () => setAppView("live"));
 els.effectForgeTabButton.addEventListener("click", () => setAppView("forge"));
 els.midiMapperTabButton.addEventListener("click", () => setAppView("midi"));
+els.midiLayoutTabButton.addEventListener("click", () => setAppView("layout"));
 els.forgeRandomizeButton.addEventListener("click", randomizeForgeDraft);
 els.forgeSaveAsButton.addEventListener("click", saveForgeDraft);
 els.forgeBehaviorSelect.addEventListener("change", updateForgeBehaviorDefaults);
@@ -10141,6 +13018,8 @@ els.copyForgeProfileButton.addEventListener("click", () => copyForgeOutput(els.f
 els.copyForgeInstructionsButton.addEventListener("click", () => copyForgeOutput(els.forgeInstructionsOutput, "Instructions"));
 els.midiConnectButton.addEventListener("click", connectMidi);
 els.midiRefreshLibraryButton.addEventListener("click", () => loadLedFxLibrary(true));
+els.midiRefreshMappingsButton.addEventListener("click", refreshMidiMappingsFromStorage);
+els.midiResetAllButton.addEventListener("click", resetAllMidiMappings);
 els.midiInputSelect.addEventListener("change", () => {
   selectMidiInput(els.midiInputSelect.value);
   renderMidiMapper();
@@ -10166,6 +13045,8 @@ els.midiColorOnSelect.addEventListener("change", () => {
   updateMidiColorPicker(els.midiColorOnSelect);
   updateMidiColorPreview(els.midiColorOnSelect);
   saveMidiControllerSettings();
+  renderMidiMappingList();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
 });
 els.midiColorOffSelect.addEventListener("change", () => {
@@ -10173,16 +13054,22 @@ els.midiColorOffSelect.addEventListener("change", () => {
   updateMidiColorPicker(els.midiColorOffSelect);
   updateMidiColorPreview(els.midiColorOffSelect);
   saveMidiControllerSettings();
+  renderMidiMappingList();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
 });
 els.midiFeedbackModeSelect.addEventListener("change", () => {
   state.midi.controller.feedbackMode = els.midiFeedbackModeSelect.value;
   saveMidiControllerSettings();
+  renderMidiMappingList();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
 });
 els.midiLedProtocolSelect.addEventListener("change", () => {
   state.midi.controller.ledProtocol = validMidiLedProtocol(els.midiLedProtocolSelect.value) || DEFAULT_MIDI_CONTROLLER.ledProtocol;
   saveMidiControllerSettings();
+  renderMidiMappingList();
+  renderMidiLayoutDesigner();
   refreshMidiFeedback();
 });
 els.midiBlackoutButton.addEventListener("click", () => {
@@ -10192,7 +13079,17 @@ els.midiMapBlackoutButton.addEventListener("click", () => startMidiLearn(midiTra
 els.midiClearMappingsButton.addEventListener("click", clearMidiMappings);
 els.midiEditActionSelect.addEventListener("change", () => {
   const mapping = state.midi.mappings.find((item) => item.id === state.editingMidiMappingId);
-  renderMidiEditPlaylistOptions(els.midiEditActionSelect.value, mapping?.playlistId || "active");
+  const action = MIDI_MAPPING_ACTIONS.has(els.midiEditActionSelect.value)
+    ? els.midiEditActionSelect.value
+    : mapping?.action;
+  renderMidiEditPlaylistOptions(action, mapping?.playlistId || "active");
+  if (mapping && action) {
+    applyMidiActionFeedbackToEditor("midiEdit", action, mapping);
+    const draft = currentMidiMappingDraft();
+    if (draft && els.midiMappingEditStatus) {
+      els.midiMappingEditStatus.textContent = `${midiMappingTitle(draft)} mapped to ${midiMessageLabel(draft.message)}`;
+    }
+  }
 });
 els.midiEditColorOnSelect.addEventListener("change", () => {
   updateMidiColorPicker(els.midiEditColorOnSelect);
@@ -10205,6 +13102,67 @@ els.midiEditColorOffSelect.addEventListener("change", () => {
 els.saveMidiMappingEditButton.addEventListener("click", saveMidiMappingEdit);
 els.testMidiMappingEditButton.addEventListener("click", testMidiMappingEdit);
 els.closeMidiMappingEditorButton.addEventListener("click", closeMidiMappingEditor);
+els.midiLayoutConnectButton.addEventListener("click", connectMidi);
+els.midiLayoutAutoMapButton.addEventListener("click", autoMapMidiLayout);
+els.midiLayoutRefreshMappingsButton.addEventListener("click", refreshMidiMappingsFromStorage);
+els.midiLayoutClearButton.addEventListener("click", clearMidiLayout);
+els.midiLayoutResetAllButton.addEventListener("click", resetAllMidiMappings);
+els.midiLayoutTemplateSelect.addEventListener("change", () => setMidiLayoutTemplate(els.midiLayoutTemplateSelect.value));
+els.midiLayoutGridSizeSelect.addEventListener("change", applyMidiLayoutGridSizePreset);
+els.midiLayoutZoomOutButton.addEventListener("click", () => changeMidiLayoutZoom(-MIDI_LAYOUT_ZOOM_STEP));
+els.midiLayoutZoomInButton.addEventListener("click", () => changeMidiLayoutZoom(MIDI_LAYOUT_ZOOM_STEP));
+els.midiLayoutClearSelectionButton.addEventListener("click", () => clearMidiLayoutSelection());
+els.midiLayoutApplyCustomButton.addEventListener("click", applyMidiLayoutCustomSettings);
+els.midiLayoutSaveCustomButton.addEventListener("click", saveMidiLayoutCustomModel);
+els.midiLayoutAddButtonButton.addEventListener("click", () => addMidiLayoutCustomControl("button"));
+els.midiLayoutAddKnobButton.addEventListener("click", () => addMidiLayoutCustomControl("knob"));
+els.midiLayoutAddFaderButton.addEventListener("click", () => addMidiLayoutCustomControl("fader"));
+els.midiLayoutPositionButton.addEventListener("click", toggleMidiLayoutPositionMode);
+els.midiLayoutInputSelect.addEventListener("change", () => {
+  selectMidiInput(els.midiLayoutInputSelect.value);
+  renderMidiMapper();
+  renderMidiLayoutDesigner();
+});
+els.midiLayoutOutputSelect.addEventListener("change", () => {
+  selectMidiOutput(els.midiLayoutOutputSelect.value);
+  renderMidiMapper();
+  renderMidiLayoutDesigner();
+  refreshMidiFeedback();
+});
+els.midiLayoutPadActionSelect.addEventListener("change", () => {
+  const current = midiLayoutPad(state.editingMidiLayoutPadId);
+  const action = MIDI_LAYOUT_ACTIONS.has(els.midiLayoutPadActionSelect.value)
+    ? els.midiLayoutPadActionSelect.value
+    : current?.action;
+  renderMidiLayoutPadPlaylistOptions(action, current?.playlistId || "active");
+  if (current && MIDI_MAPPING_ACTIONS.has(action)) applyMidiActionFeedbackToEditor("midiLayoutPad", action, current);
+  const pad = currentMidiLayoutPadDraft();
+  if (pad && els.midiLayoutPadEditStatus) {
+    els.midiLayoutPadEditStatus.textContent = `${pad.label} | ${midiLayoutPadTitle(pad)} | ${midiMessageLabel(pad.message)}`;
+  }
+  if (els.testMidiLayoutPadButton) {
+    els.testMidiLayoutPadButton.disabled = !(pad && pad.message && MIDI_MAPPING_ACTIONS.has(pad.action));
+  }
+});
+els.midiLayoutPadLabelInput.addEventListener("input", () => {
+  const pad = currentMidiLayoutPadDraft();
+  if (pad && els.midiLayoutPadEditStatus) {
+    els.midiLayoutPadEditStatus.textContent = `${pad.label} | ${midiLayoutPadTitle(pad)} | ${midiMessageLabel(pad.message)}`;
+  }
+});
+els.midiLayoutPadColorOnSelect.addEventListener("change", () => {
+  updateMidiColorPicker(els.midiLayoutPadColorOnSelect);
+  updateMidiColorPreview(els.midiLayoutPadColorOnSelect);
+});
+els.midiLayoutPadColorOffSelect.addEventListener("change", () => {
+  updateMidiColorPicker(els.midiLayoutPadColorOffSelect);
+  updateMidiColorPreview(els.midiLayoutPadColorOffSelect);
+});
+els.saveMidiLayoutPadButton.addEventListener("click", saveMidiLayoutPad);
+els.learnMidiLayoutPadButton.addEventListener("click", learnMidiLayoutPad);
+els.testMidiLayoutPadButton.addEventListener("click", testMidiLayoutPad);
+els.clearMidiLayoutPadButton.addEventListener("click", clearCurrentMidiLayoutPad);
+els.closeMidiLayoutPadEditorButton.addEventListener("click", closeMidiLayoutPadEditor);
 els.saveConnectionButton.addEventListener("click", saveConnection);
 els.topPreviewDeviceSelect.addEventListener("change", () => {
   state.topPreviewDeviceId = els.topPreviewDeviceSelect.value;

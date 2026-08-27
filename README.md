@@ -23,7 +23,10 @@ websocket stream for the top device preview.
 - Show Pack export/import for local Workshop profiles, generated queues and LedFx library snapshots.
 - Scene queue with approve/unapprove, regenerate, edit, preview and send to LedFx.
 - Published scene manager with search, tags, activation, rename, edit and delete.
-- Playlist editor and MIDI Patch for Web MIDI mapping.
+- Playlist editor and Playlist Patch for Web MIDI mapping.
+- MIDI Layout designer with controller-model presets, saved Custom pad/button/knob/fader
+  models, drag-and-drop position editing, reset-to-factory mappings, physical input
+  flashing, and LED feedback disabled for controls that do not light up.
 - Preset Lab for generating and previewing presets before sending them to LedFx.
 - Effect Forge for experimental Python effect module drafts and Workshop profiles.
 
@@ -45,7 +48,29 @@ modules must be installed into LedFx and LedFx must be restarted.
   JSON-compatible YAML.
 
 Web MIDI support is browser-dependent. Chrome and Edge support Web MIDI best.
-Safari support is limited, so MIDI Patch mapping may not work there.
+Safari support is limited, so Playlist Patch mapping may not work there.
+
+## MIDI Notes, Control And Channel
+
+Workshop learns the exact MIDI message sent by your controller:
+
+- `Note` is usually a pad or button press. It has a note number and a channel.
+- `Control` means MIDI CC, usually from knobs, faders or encoders. It has a CC number, a channel and a changing value from 0-127.
+- `Channel` is the MIDI lane, from 1 to 16. A mapping only triggers when the message type, number and channel all match.
+
+If your controller exposes both `Notes` and `Control` ports, start with `Notes`
+for pad/button input and RGB LED output. Use `Control` when knobs, faders or
+encoders do not flash in the Controller Surface. Saved Custom models keep their
+dimensions, labels, learned MIDI messages and drag-and-drop control positions in
+the controller-model list.
+
+The MIDI Layout designer includes presets for common controllers such as Akai APC Mini MK2, Novation Launchpad Mini MK3, Novation Launchkey Mini MK3, Akai MPK Mini MK3 and Arturia MiniLab 3. Faders are treated as unlit controls, so Workshop does not send ON/OFF color feedback to them.
+
+Use `Refresh Mappings` after editing profiles, layouts or another browser tab. It
+reloads the current Workshop MIDI assignments, controller settings and visual
+layout from local browser storage, then refreshes LED feedback.
+
+For Akai APC Mini MK2, Workshop follows the published communication protocol: the 8x8 pad matrix uses note values 0-63 with the top visual row mapped to the top physical row, Track buttons are note 100-107 from left to right, Scene Launch buttons are note 112-119 from top to bottom, Shift is note 122, and faders are CC 48-56 from left to right. Reset All Mappings also sends LED-off messages to the controller output so pads/buttons return to an unlit stock state.
 
 ## Quick Start
 
@@ -57,22 +82,22 @@ http://127.0.0.1:8888
 
 ### Windows One-Click Start
 
-On Windows, double-click `LedFx Workshop.vbs`. It starts the local Workshop
+On Windows, double-click `LedFx Workshop Launcher Windows.vbs`. It starts the local Workshop
 server in the background and opens your browser automatically.
 
 If Windows blocks the hidden launcher or you need to see startup errors,
-double-click `Launch LedFx Workshop.bat` instead.
+double-click `LedFx Workshop Launcher Windows.bat` instead.
 
 The Windows launcher uses `.venv\Scripts\python.exe` when it exists, then falls
 back to the Python launcher `py.exe -3`, then `python.exe`.
 
 ### macOS One-Click Start
 
-On macOS, double-click `LedFx Workshop.app` in this folder. It starts the local
+On macOS, double-click `LedFx Workshop Launcher MacOS.app` in this folder. It starts the local
 Workshop server in the background and opens the browser automatically.
 
 If macOS blocks the app the first time, right-click it and choose `Open`. The
-fallback one-file launcher is `Launch LedFx Workshop.command`.
+fallback one-file launcher is `LedFx Workshop Launcher MacOS.command`.
 
 The launchers use `http://127.0.0.1:8057` when it is free, then pick the next
 available local port. Logs are written to `ledfx-workshop.log` and
@@ -110,10 +135,10 @@ python -m src.server --port 8057 --ledfx http://127.0.0.1:8888
 
 ```text
 .
-|-- LedFx Workshop.vbs           # Windows no-terminal launcher
-|-- Launch LedFx Workshop.bat    # Windows fallback launcher with visible errors
-|-- LedFx Workshop.app/          # macOS no-terminal launcher
-|-- Launch LedFx Workshop.command # macOS one-file launcher fallback
+|-- LedFx Workshop Launcher Windows.vbs # Windows no-terminal launcher
+|-- LedFx Workshop Launcher Windows.bat # Windows fallback launcher with visible errors
+|-- LedFx Workshop Launcher MacOS.app/  # macOS no-terminal launcher
+|-- LedFx Workshop Launcher MacOS.command # macOS one-file launcher fallback
 |-- data/
 |   |-- effects.yaml              # Effect metadata used by the scene generator
 |   |-- palettes.yaml             # Built-in and saved gradient palettes
@@ -236,7 +261,7 @@ Do not commit `data/settings.json`, `outputs/`, `backups/` or `*.bak` files.
 - More verified LedFx effect metadata.
 - Richer Show Pack merge controls and conflict previews.
 - Stronger preset generation and preset diffing.
-- MIDI Patch profiles for common MIDI controllers.
+- Playlist Patch profiles for common MIDI controllers.
 - Better visual preview controls and device snapshots.
 - Optional packaging as a desktop app.
 

@@ -7,12 +7,12 @@ This document maps the main files in LedFx Workshop for contributors.
 - `README.md` - project overview, setup and publishing notes.
 - `requirements.txt` - optional Python dependency list.
 - `.gitignore` - excludes local settings, generated exports and backups.
-- `LedFx Workshop.app` - macOS Finder launcher that starts Workshop without
+- `LedFx Workshop Launcher MacOS.app` - macOS Finder launcher that starts Workshop without
   requiring terminal commands.
-- `Launch LedFx Workshop.command` - fallback macOS launcher file.
-- `LedFx Workshop.vbs` - Windows launcher that starts Workshop hidden and opens
+- `LedFx Workshop Launcher MacOS.command` - fallback macOS launcher file.
+- `LedFx Workshop Launcher Windows.vbs` - Windows launcher that starts Workshop hidden and opens
   the browser.
-- `Launch LedFx Workshop.bat` - Windows fallback launcher with visible errors.
+- `LedFx Workshop Launcher Windows.bat` - Windows fallback launcher with visible errors.
 
 ## `scripts/`
 
